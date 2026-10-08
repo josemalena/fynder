@@ -452,6 +452,7 @@ add_place (NemoPlacesSidebar *sidebar,
 {
 	GtkTreeIter           iter;
     GIcon *gicon;
+	const gchar *theme_icon_name;
 	gboolean show_eject, show_unmount;
 	gboolean show_eject_button;
 
@@ -470,7 +471,16 @@ add_place (NemoPlacesSidebar *sidebar,
 		show_eject_button = (show_unmount || show_eject);
 	}
 
-    gicon = (icon_name != NULL) ? g_themed_icon_new (icon_name) : NULL;
+    theme_icon_name = icon_name;
+    if (icon_name != NULL &&
+        g_settings_get_boolean (nemo_preferences,
+                                NEMO_PREFERENCES_SIDEBAR_FINDER_SECTIONS) &&
+        g_str_has_prefix (icon_name, "xsi-") &&
+        gtk_icon_theme_has_icon (gtk_icon_theme_get_default (), icon_name + 4)) {
+        theme_icon_name = icon_name + 4;
+    }
+
+    gicon = (theme_icon_name != NULL) ? g_themed_icon_new (theme_icon_name) : NULL;
 
 	gtk_tree_store_append (sidebar->store, &iter, &cat_iter);
 	gtk_tree_store_set (sidebar->store, &iter,
@@ -973,7 +983,7 @@ update_places (NemoPlacesSidebar *sidebar)
             gchar *icloud_uri = g_filename_to_uri (icloud_path, NULL, NULL);
             if (icloud_uri != NULL) {
                 cat_iter = add_heading (sidebar, SECTION_ICLOUD, _("iCloud"));
-                icon = NEMO_ICON_SYMBOLIC_FOLDER;
+                icon = "weather-overcast-symbolic";
                 cat_iter = add_place (sidebar, PLACES_BUILT_IN, SECTION_ICLOUD,
                                        _("iCloud Drive"), icon, icloud_uri,
                                        NULL, NULL, NULL, 0, icloud_path, 0, FALSE, cat_iter);
@@ -1525,9 +1535,11 @@ update_finder_sidebar_style (NemoPlacesSidebar *sidebar)
     if (finder_sections) {
         gtk_style_context_add_class (sidebar_context, "nemo-finder-sidebar");
         gtk_style_context_add_class (tree_context, "nemo-finder-sidebar-tree");
+        gtk_tree_view_set_show_expanders (sidebar->tree_view, FALSE);
     } else {
         gtk_style_context_remove_class (sidebar_context, "nemo-finder-sidebar");
         gtk_style_context_remove_class (tree_context, "nemo-finder-sidebar-tree");
+        gtk_tree_view_set_show_expanders (sidebar->tree_view, TRUE);
     }
 }
 
