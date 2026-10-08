@@ -345,7 +345,9 @@ check_heading_for_devices (NemoPlacesSidebar *sidebar,
     if (section_type == SECTION_DEVICES) {
         if (!sidebar->devices_header_added) {
             cat_iter = add_heading (sidebar, SECTION_DEVICES,
-                        _("Devices"));
+                        g_settings_get_boolean (nemo_preferences,
+                                                NEMO_PREFERENCES_SIDEBAR_FINDER_SECTIONS)
+                        ? _("Locations") : _("Devices"));
             sidebar->devices_header_added = TRUE;
         }
     }
@@ -747,6 +749,8 @@ update_places (NemoPlacesSidebar *sidebar)
     gchar *tooltip_info;
 	GList *network_mounts, *network_volumes;
     gint full;
+    gboolean finder_sections;
+    SectionType network_section;
 
 	DEBUG ("Updating places sidebar");
 
@@ -775,8 +779,12 @@ update_places (NemoPlacesSidebar *sidebar)
 	network_mounts = network_volumes = NULL;
 	volume_monitor = sidebar->volume_monitor;
 
+    finder_sections = g_settings_get_boolean (nemo_preferences,
+                                               NEMO_PREFERENCES_SIDEBAR_FINDER_SECTIONS);
+    network_section = finder_sections ? SECTION_DEVICES : SECTION_NETWORK;
+
     cat_iter = add_heading (sidebar, SECTION_COMPUTER,
-                                    _("My Computer"));
+                             finder_sections ? _("Favorites") : _("My Computer"));
     /* add built in bookmarks */
 
     /* home folder */
@@ -924,8 +932,9 @@ update_places (NemoPlacesSidebar *sidebar)
         g_free (icon);
     }
 
-    cat_iter = add_heading (sidebar, SECTION_BOOKMARKS,
-                                    _("Bookmarks"));
+    if (!finder_sections) {
+        cat_iter = add_heading (sidebar, SECTION_BOOKMARKS, _("Bookmarks"));
+    }
 
     while (bookmark_index < bookmark_count) {
         bookmark = nemo_bookmark_list_item_at (sidebar->bookmarks, bookmark_index);
@@ -948,6 +957,23 @@ update_places (NemoPlacesSidebar *sidebar)
         g_free (mount_uri);
         g_free (tooltip);
         ++bookmark_index;
+    }
+
+    if (finder_sections) {
+        gchar *icloud_path = g_settings_get_string (nemo_preferences,
+                                                     NEMO_PREFERENCES_SIDEBAR_ICLOUD_PATH);
+        if (icloud_path[0] != '\0' && g_file_test (icloud_path, G_FILE_TEST_IS_DIR)) {
+            gchar *icloud_uri = g_filename_to_uri (icloud_path, NULL, NULL);
+            if (icloud_uri != NULL) {
+                cat_iter = add_heading (sidebar, SECTION_BOOKMARKS, _("iCloud"));
+                icon = NEMO_ICON_SYMBOLIC_FOLDER;
+                cat_iter = add_place (sidebar, PLACES_BUILT_IN, SECTION_BOOKMARKS,
+                                       _("iCloud Drive"), icon, icloud_uri,
+                                       NULL, NULL, NULL, 0, icloud_path, 0, FALSE, cat_iter);
+                g_free (icloud_uri);
+            }
+        }
+        g_free (icloud_path);
     }
 
     GList *place_infos = NULL;
@@ -1236,8 +1262,9 @@ update_places (NemoPlacesSidebar *sidebar)
     g_list_free (place_infos);
 
 	/* network */
-	cat_iter = add_heading (sidebar, SECTION_NETWORK,
-		     _("Network"));
+    if (!finder_sections) {
+		cat_iter = add_heading (sidebar, SECTION_NETWORK, _("Network"));
+    }
 
 	network_volumes = g_list_reverse (network_volumes);
 	for (l = network_volumes; l != NULL; l = l->next) {
@@ -1253,7 +1280,7 @@ update_places (NemoPlacesSidebar *sidebar)
 			tooltip = g_strdup_printf (_("Mount and open %s"), name);
 
 			cat_iter = add_place (sidebar, PLACES_MOUNTED_VOLUME,
-                				   SECTION_NETWORK,
+						   network_section,
                 				   name, icon, NULL,
                 				   NULL, volume, NULL, 0, tooltip, 0, FALSE,
                                    cat_iter);
@@ -1274,7 +1301,7 @@ update_places (NemoPlacesSidebar *sidebar)
 		name = g_mount_get_name (mount);
 		tooltip = g_file_get_parse_name (root);
 		cat_iter = add_place (sidebar, PLACES_MOUNTED_VOLUME,
-                			   SECTION_NETWORK,
+						   network_section,
                 			   name, icon, mount_uri,
                 			   NULL, NULL, mount, 0, tooltip, 0, FALSE,
                                cat_iter);
@@ -1291,7 +1318,7 @@ update_places (NemoPlacesSidebar *sidebar)
  	mount_uri = (char *)"network:///"; /* No need to strdup */
 	icon = NEMO_ICON_SYMBOLIC_NETWORK;
 	cat_iter = add_place (sidebar, PLACES_BUILT_IN,
-                		   SECTION_NETWORK,
+				   network_section,
                 		   _("Network"), icon,
                 		   mount_uri, NULL, NULL, NULL, 0,
                 		   _("Browse the contents of the network"), 0, FALSE,

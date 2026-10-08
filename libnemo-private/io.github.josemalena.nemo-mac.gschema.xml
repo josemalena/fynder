@@ -322,6 +322,16 @@
       <summary>Link the view selector buttons</summary>
       <description>Display the icon, list and compact view buttons as a Finder-style segmented control.</description>
     </key>
+    <key name="sidebar-finder-sections" type="b">
+      <default>false</default>
+      <summary>Use Finder-style sidebar sections</summary>
+      <description>Show Favorites, iCloud and Locations instead of Nemo's default sidebar sections.</description>
+    </key>
+    <key name="sidebar-icloud-path" type="s">
+      <default>''</default>
+      <summary>Mounted iCloud Drive path</summary>
+      <description>Local path displayed as iCloud Drive when Finder-style sidebar sections are enabled.</description>
+    </key>
     <key name="date-font-choice" enum="io.github.josemalena.nemo-mac.DateFontChoice">
       <default>'auto-mono'</default>
       <summary>The font to use for the date/time columns.</summary>
