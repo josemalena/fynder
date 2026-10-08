@@ -1,7 +1,7 @@
 
 dbusBuiltSources = gnome.gdbus_codegen('nemo-generated',
   join_paths(meson.project_source_root(), 'data', 'dbus-interfaces.xml'),
-  interface_prefix: 'org.Nemo.',
+  interface_prefix: 'io.github.josemalena.NemoMac.',
   namespace: 'NemoDBus',
   object_manager: true
 )
@@ -119,6 +119,6 @@ nemo_private = declare_dependency(
   dependencies: nemo_private_deps,
 )
 
-install_data('org.nemo.gschema.xml',
+install_data('io.github.josemalena.nemo-mac.gschema.xml',
     install_dir: join_paths(get_option('datadir'), 'glib-2.0', 'schemas')
 )

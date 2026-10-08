@@ -1384,7 +1384,7 @@ rebuild_menu (FMTreeView *view)
                               &view->details->action_action_group);
 
     view->details->tv_action_group_merge_id =
-            gtk_ui_manager_add_ui_from_resource (view->details->ui_manager, "/org/nemo/nemo-tree-sidebar-ui.xml", NULL);
+            gtk_ui_manager_add_ui_from_resource (view->details->ui_manager, "/io/github/josemalena/nemo-mac/nemo-tree-sidebar-ui.xml", NULL);
 
     nemo_action_manager_iterate_actions (view->details->action_manager,
                                          (NemoActionManagerIterFunc) add_action_to_ui,

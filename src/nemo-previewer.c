@@ -30,9 +30,9 @@
 
 G_DEFINE_TYPE (NemoPreviewer, nemo_previewer, G_TYPE_OBJECT);
 
-#define PREVIEWER_DBUS_NAME "org.nemo.Preview"
-#define PREVIEWER_DBUS_IFACE "org.nemo.Preview"
-#define PREVIEWER_DBUS_PATH "/org/nemo/Preview"
+#define PREVIEWER_DBUS_NAME "io.github.josemalena.nemo-mac.Preview"
+#define PREVIEWER_DBUS_IFACE "io.github.josemalena.nemo-mac.Preview"
+#define PREVIEWER_DBUS_PATH "/io/github/josemalena/nemo-mac/Preview"
 
 static NemoPreviewer *singleton = NULL;
 

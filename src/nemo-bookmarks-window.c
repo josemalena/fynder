@@ -241,7 +241,7 @@ create_bookmarks_window (NemoBookmarkList *list, GObject *undo_manager_source)
 	builder = gtk_builder_new ();
     gtk_builder_set_translation_domain (builder, GETTEXT_PACKAGE);
 	if (!gtk_builder_add_from_resource (builder,
-					    "/org/nemo/nemo-bookmarks-window.glade",
+					    "/io/github/josemalena/nemo-mac/nemo-bookmarks-window.glade",
 					    NULL)) {
 		return NULL;
 	}

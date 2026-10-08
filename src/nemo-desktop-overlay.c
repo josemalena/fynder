@@ -443,7 +443,7 @@ nemo_desktop_overlay_init (NemoDesktopOverlay *overlay)
 
     priv->builder = gtk_builder_new ();
     gtk_builder_set_translation_domain (priv->builder, GETTEXT_PACKAGE);
-    gtk_builder_add_from_resource (priv->builder, "/org/nemo/nemo-desktop-overlay.glade", NULL);
+    gtk_builder_add_from_resource (priv->builder, "/io/github/josemalena/nemo-mac/nemo-desktop-overlay.glade", NULL);
 
     window = GTK_WINDOW (gtk_builder_get_object (priv->builder, "overlay_window"));
     priv->window = window;

@@ -183,16 +183,12 @@ nemo_definitions =  [
 subdir('cut-n-paste-code/libegg')
 subdir('data')
 subdir('eel')
-subdir('files')
 subdir('gresources')
 subdir('libnemo-extension')
 subdir('libnemo-private')
 # subdir('po')
 subdir('src')
-subdir('search-helpers')
 subdir('test')
-subdir('docs')
-subdir('action-layout-editor')
 
 # Post-installation actions. Skipped automatically when DESTDIR is set
 # (debian builds, etc.), since the package manager handles them.

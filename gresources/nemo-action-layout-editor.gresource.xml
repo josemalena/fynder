@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
-  <gresource prefix="/org/nemo/action-layout-editor/">
+  <gresource prefix="/io/github/josemalena/nemo-mac/action-layout-editor/">
     <file>nemo-action-layout-editor.glade</file>
     <file>nemo-shortcuts.ui</file>
   </gresource>

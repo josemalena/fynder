@@ -2,9 +2,7 @@
 ################################################################################
 
 desktopFiles = [
-  'nemo-autorun-software.desktop',
-  'nemo-autostart.desktop',
-  'nemo.desktop',
+  'nemo-mac.desktop',
 ]
 
 install_data(desktopFiles,
@@ -12,56 +10,3 @@ install_data(desktopFiles,
 )
 
 ################################################################################
-dataConf = configuration_data()
-dataConf.set('bindir', join_paths(get_option('prefix'), get_option('bindir')))
-
-dbusFiles = [
-  configure_file(
-    input : 'nemo.service.in',
-    output: 'nemo.service',
-    configuration: dataConf,
-  ),
-
-  configure_file(
-    input : 'nemo.FileManager1.service.in',
-    output: 'nemo.FileManager1.service',
-    configuration: dataConf,
-  ),
-]
-
-install_data(dbusFiles,
-  install_dir: join_paths(get_option('datadir'), 'dbus-1', 'services')
-)
-
-################################################################################
-
-# nemo.xml is generated from nemo.xml.in by ../generate_additional_file
-install_data('nemo.xml',
-  install_dir: join_paths(get_option('datadir'), 'mime', 'packages')
-)
-
-################################################################################
-dataConf = configuration_data()
-dataConf.set('bindir', join_paths(get_option('prefix'), get_option('bindir')))
-
-rootPolicyFile = configure_file(
-  input : 'org.nemo.root.policy.in',
-  output: 'org.nemo.root.policy',
-  configuration: dataConf,
-)
-
-install_data(rootPolicyFile,
-  install_dir: join_paths(get_option('datadir'), 'polkit-1', 'actions')
-)
-
-foreach lang_file: ['nemo_action.lang', 'nemo_search_helper.lang']
-  foreach sv_dir: ['gtksourceview-2.0', 'gtksourceview-3.0', 'gtksourceview-4']
-    install_data(lang_file,
-      install_dir: join_paths(get_option('datadir'), sv_dir, 'language-specs')
-    )
-  endforeach
-endforeach
-
-################################################################################
-
-subdir('icons')

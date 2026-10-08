@@ -1147,7 +1147,9 @@ nemo_main_application_continue_startup (NemoApplication *app)
 
 	/* create DBus manager */
 	self->priv->dbus_manager = nemo_dbus_manager_new ();
-	self->priv->fdb_manager = nemo_freedesktop_dbus_new ();
+	if (g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_CLAIM_FILE_MANAGER1)) {
+		self->priv->fdb_manager = nemo_freedesktop_dbus_new ();
+	}
 
     /* Check the user's ~/.config/nemo directory and post warnings
      * if there are problems.
@@ -1220,7 +1222,7 @@ NemoApplication *
 nemo_main_application_get_singleton (void)
 {
     return nemo_application_initialize_singleton (NEMO_TYPE_MAIN_APPLICATION,
-                                                  "application-id", "org.Nemo",
+                                                  "application-id", "io.github.josemalena.NemoMac",
                                                   "flags", G_APPLICATION_HANDLES_OPEN,
                                                   "register-session", TRUE,
                                                   NULL);

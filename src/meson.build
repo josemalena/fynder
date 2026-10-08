@@ -15,6 +15,7 @@ nemoBuiltSources = gnome.gdbus_codegen(
 )
 
 nemoCommon_sources = [
+  gresources,
   dbusBuiltSources,
   nemoBuiltSources,
   'nemo-action-config-widget.c',
@@ -119,17 +120,9 @@ if gtk_layer_shell_enabled
   nemo_deps += wayland_client
 endif
 
-nemo = executable('nemo',
+nemo = executable('nemo-mac',
   nemoCommon_sources + nemoWindow_sources,
   include_directories: [ rootInclude ],
-  c_args: nemo_definitions,
-  dependencies: nemo_deps,
-  install: true
-)
-
-nemoDesktop = executable('nemo-desktop',
-  nemoCommon_sources + nemoDesktop_sources,
-  include_directories: [ rootInclude],
   c_args: nemo_definitions,
   dependencies: nemo_deps,
   install: true
@@ -140,7 +133,7 @@ nemo_autorun_software = executable('nemo-autorun-software',
   include_directories: [ rootInclude, ],
   c_args: nemo_definitions,
   dependencies: nemo_deps,
-  install: true
+  install: false
 )
 
 nemo_connect_server = executable('nemo-connect-server',
@@ -153,7 +146,7 @@ nemo_connect_server = executable('nemo-connect-server',
   include_directories: [ rootInclude, ],
   c_args: nemo_definitions,
   dependencies: nemo_deps,
-  install: true
+  install: false
 )
 
 nemo_open_with = executable('nemo-open-with',
@@ -161,7 +154,7 @@ nemo_open_with = executable('nemo-open-with',
   include_directories: [ rootInclude, ],
   c_args: nemo_definitions,
   dependencies: nemo_deps,
-  install: true
+  install: false
 )
 
 # LibExecs
@@ -170,6 +163,5 @@ nemo_extensions_list = executable('nemo-extensions-list',
   include_directories: [ rootInclude, ],
   c_args: nemo_definitions,
   dependencies: [ nemo_deps ],
-  install: true,
-  install_dir: libExecPath,
+  install: false,
 )

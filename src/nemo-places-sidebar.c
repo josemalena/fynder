@@ -3533,7 +3533,7 @@ rebuild_menu (NemoPlacesSidebar *sidebar)
                               &sidebar->action_action_group);
 
     sidebar->bookmark_action_group_merge_id =
-            gtk_ui_manager_add_ui_from_resource (sidebar->ui_manager, "/org/nemo/nemo-places-sidebar-ui.xml", NULL);
+            gtk_ui_manager_add_ui_from_resource (sidebar->ui_manager, "/io/github/josemalena/nemo-mac/nemo-places-sidebar-ui.xml", NULL);
 
     gtk_action_group_add_actions (sidebar->bookmark_action_group,
                                   bookmark_action_entries,
