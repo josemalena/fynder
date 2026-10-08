@@ -26,6 +26,7 @@
     <value nick="locale" value="0"/>
     <value nick="iso" value="1"/>
     <value nick="informal" value="2"/>
+    <value nick="finder" value="3"/>
   </enum>
 
   <enum id="io.github.josemalena.nemo-mac.DateFontChoice">

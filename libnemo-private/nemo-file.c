@@ -5263,8 +5263,28 @@ nemo_file_get_date_as_string (NemoFile       *file,
 
         use_24 = prefs_current_24h_time_format;
 
+        if (date_format_pref == NEMO_DATE_FORMAT_FINDER) {
+            if (days_ago < 1) {
+                if (use_24) {
+                    format = _("Today, %H:%M");
+                } else {
+                    format = _("Today, %-l:%M %p");
+                }
+            } else if (days_ago < 2) {
+                if (use_24) {
+                    format = _("Yesterday, %H:%M");
+                } else {
+                    format = _("Yesterday, %-l:%M %p");
+                }
+            } else if (use_24) {
+                format = _("%d/%m/%Y, %H:%M");
+            } else {
+                format = _("%d/%m/%Y, %-l:%M %p");
+            }
+        }
+
 		// Show only the time if date is on today
-		if (days_ago < 1) {
+		else if (days_ago < 1) {
 			if (use_24) {
 				/* Translators: Time in 24h format */
 				format = _("%H:%M");
