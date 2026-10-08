@@ -308,7 +308,7 @@
       <description>When a folder is visited the viewer is inherited from that folder's parent unless you have selected another view for that particular folder.</description>
     </key>
     <key name="date-format" enum="io.github.josemalena.nemo-mac.DateFormat">
-      <default>'locale'</default>
+      <default>'finder'</default>
       <summary>Date Format</summary>
       <description>The format of file dates. Possible values are "locale", "iso", and "informal".</description>
     </key>
@@ -318,17 +318,17 @@
       <description>When enabled, Nemo Mac tries to provide org.freedesktop.FileManager1. Leave disabled while Nemo is the default file manager.</description>
     </key>
     <key name="toolbar-linked-view-switcher" type="b">
-      <default>false</default>
+      <default>true</default>
       <summary>Link the view selector buttons</summary>
       <description>Display the icon, list and compact view buttons as a Finder-style segmented control.</description>
     </key>
     <key name="toolbar-finder-layout" type="b">
-      <default>false</default>
+      <default>true</default>
       <summary>Use a Finder-style toolbar</summary>
       <description>Use Finder-inspired navigation, view selector and toolbar styling.</description>
     </key>
     <key name="sidebar-finder-sections" type="b">
-      <default>false</default>
+      <default>true</default>
       <summary>Use Finder-style sidebar sections</summary>
       <description>Show Favorites, iCloud and Locations instead of Nemo's default sidebar sections.</description>
     </key>

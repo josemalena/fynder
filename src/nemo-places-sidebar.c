@@ -456,6 +456,7 @@ uri_is_user_special_directory (const char *uri,
 {
     const char *path;
     gchar *special_uri;
+    gchar *home_uri;
     gboolean matches;
 
     path = g_get_user_special_dir (directory);
@@ -464,25 +465,43 @@ uri_is_user_special_directory (const char *uri,
     }
 
     special_uri = g_filename_to_uri (path, NULL, NULL);
-    matches = g_strcmp0 (uri, special_uri) == 0;
+    home_uri = nemo_get_home_directory_uri ();
+    matches = g_strcmp0 (special_uri, home_uri) != 0 &&
+              g_strcmp0 (uri, special_uri) == 0;
     g_free (special_uri);
+    g_free (home_uri);
 
     return matches;
 }
 
 static const char *
 get_finder_sidebar_icon_name (const char *uri,
+                              const char *name,
+                              SectionType section_type,
                               GMount *mount,
                               const char *fallback)
 {
     GFile *root;
+    gchar *home_uri;
     const char *icon_name = fallback;
 
-    if (g_strcmp0 (uri, "recent:///") == 0) {
+    home_uri = nemo_get_home_directory_uri ();
+
+    if (section_type == SECTION_ICLOUD) {
+        icon_name = "weather-overcast-symbolic";
+    } else if (g_strcmp0 (uri, home_uri) == 0) {
+        icon_name = "user-home-symbolic";
+    } else if (g_strcmp0 (uri, "recent:///") == 0) {
         icon_name = "document-open-recent-symbolic";
     } else if (uri_is_user_special_directory (uri, G_USER_DIRECTORY_DOCUMENTS)) {
         icon_name = "folder-documents-symbolic";
     } else if (uri_is_user_special_directory (uri, G_USER_DIRECTORY_DOWNLOAD)) {
+        icon_name = "folder-download-symbolic";
+    } else if (g_strcmp0 (name, "Documents") == 0 ||
+               g_strcmp0 (name, "Documentos") == 0) {
+        icon_name = "folder-documents-symbolic";
+    } else if (g_strcmp0 (name, "Downloads") == 0 ||
+               g_strcmp0 (name, "Descargas") == 0) {
         icon_name = "folder-download-symbolic";
     } else if (mount != NULL) {
         root = g_mount_get_root (mount);
@@ -491,6 +510,8 @@ get_finder_sidebar_icon_name (const char *uri,
         }
         g_object_unref (root);
     }
+
+    g_free (home_uri);
 
     return icon_name;
 }
@@ -538,8 +559,10 @@ add_place (NemoPlacesSidebar *sidebar,
                                 NEMO_PREFERENCES_SIDEBAR_FINDER_SECTIONS)) {
         const char *finder_icon_name;
 
-        finder_icon_name = get_finder_sidebar_icon_name (uri, mount, icon_name);
-        if (gtk_icon_theme_has_icon (gtk_icon_theme_get_default (), finder_icon_name)) {
+        finder_icon_name = get_finder_sidebar_icon_name (uri, name, section_type,
+                                                          mount, icon_name);
+        if (finder_icon_name != icon_name &&
+            gtk_icon_theme_has_icon (gtk_icon_theme_get_default (), finder_icon_name)) {
             theme_icon_name = finder_icon_name;
         } else if (g_str_has_prefix (icon_name, "xsi-") &&
                    gtk_icon_theme_has_icon (gtk_icon_theme_get_default (), icon_name + 4)) {

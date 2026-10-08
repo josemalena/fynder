@@ -52,8 +52,8 @@ NemoDesktopWindow GtkPaned {
 
 .nemo-finder-sidebar-tree.view:selected,
 .nemo-finder-sidebar-tree.view:selected:focus {
-    background-color: #373834;
-    color: #f0f0ed;
+    background-color: #484944;
+    color: #ffffff;
 }
 
 .nemo-finder-sidebar-tree.view:hover {
