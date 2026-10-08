@@ -136,6 +136,33 @@ NemoDesktopWindow GtkPaned {
     border-color: #73746f;
 }
 
+/* Finder Path Bar: franja encima de la statusbar (finder-show-path-bar). */
+nemo-finder-path-bar,
+.nemo-finder-pathbar {
+    padding: 3px 10px;
+    background-color: #3b3c38;
+    color: #b9bab5;
+    font-size: 11px;
+}
+
+.nemo-finder-pathbar-segment label {
+    color: #b9bab5;
+    font-size: 11px;
+}
+
+.nemo-finder-pathbar-segment.current label {
+    color: #ecece8;
+}
+
+.nemo-finder-pathbar-segment:hover label {
+    color: #ffffff;
+}
+
+.nemo-finder-pathbar-separator {
+    color: #85867f;
+    font-size: 11px;
+}
+
 /* EelEditableLabel (icon labels) */
 .nemo-desktop.view .entry,
 .nemo-desktop.view .entry:active,

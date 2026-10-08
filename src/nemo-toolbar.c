@@ -277,7 +277,7 @@ toolbar_update_finder_buttons (NemoToolbar *self)
                                 NEMO_PREFERENCES_TOOLBAR_FINDER_SHOW_DELETE, finder_layout);
     toolbar_bind_finder_button (self, self->priv->sidebar_button, NEMO_ACTION_SHOW_HIDE_SIDEBAR,
                                 NEMO_PREFERENCES_TOOLBAR_FINDER_SHOW_SIDEBAR, finder_layout);
-    toolbar_bind_finder_button (self, self->priv->path_button, NEMO_ACTION_TOGGLE_LOCATION,
+    toolbar_bind_finder_button (self, self->priv->path_button, NEMO_ACTION_SHOW_HIDE_PATH_BAR,
                                 NEMO_PREFERENCES_TOOLBAR_FINDER_SHOW_PATH, finder_layout);
 }
 
@@ -523,6 +523,11 @@ toolbar_update_appearance (NemoToolbar *self)
         }
     }
 
+    /* Con el layout Finder el breadcrumb no va en el toolbar: la ruta vive en la
+     * Path Bar sobre la statusbar. Solo se muestra aquí la entrada de ubicación. */
+    gtk_widget_set_visible (self->priv->stack,
+                            !finder_layout || self->priv->show_location_entry);
+
     toolbar_update_arrange_button (self);
     gtk_widget_set_visible (self->priv->action_button, finder_layout);
     gtk_widget_set_visible (self->priv->search_item, finder_layout);
@@ -715,7 +720,7 @@ nemo_toolbar_constructed (GObject *obj)
     gtk_container_add (GTK_CONTAINER (box), self->priv->sidebar_button);
 
     self->priv->path_button = toolbar_create_finder_button ("view-path-symbolic",
-                                                            _("Edit the location"), TRUE);
+                                                            _("Show or hide the path bar"), TRUE);
     gtk_container_add (GTK_CONTAINER (box), self->priv->path_button);
 
     gtk_container_add (GTK_CONTAINER (tool_box), GTK_WIDGET (box));

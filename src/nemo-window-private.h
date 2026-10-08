@@ -43,6 +43,7 @@ struct NemoWindowDetails
         GtkWidget *menubar;
 
         GtkWidget *nemo_status_bar;
+        GtkWidget *finder_path_bar;
 
         GtkUIManager *ui_manager;
         GtkActionGroup *main_action_group; /* owned by ui_manager */

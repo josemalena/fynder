@@ -1559,6 +1559,11 @@ static const GtkToggleActionEntry main_toggle_entries[] = {
   /* tooltip */              N_("Change the visibility of this window's statusbar"),
                              NULL,
   /* is_active */            TRUE },
+  /* name, stock id */     { "Show Hide Path Bar", NULL,
+  /* label, accelerator */   N_("Show P_ath Bar"), NULL,
+  /* tooltip */              N_("Show the path bar above the statusbar"),
+                             NULL,
+  /* is_active */            FALSE },
   /* name, stock id */     { NEMO_ACTION_SHOW_HIDE_MENUBAR, NULL,
   /* label, accelerator */   N_("M_enubar"), NULL,
   /* tooltip */              N_("Change the default visibility of the menubar"),
@@ -1849,6 +1854,15 @@ window_menus_set_bindings (NemoWindow *window)
 			 action,
 			 "active",
 			 G_SETTINGS_BIND_DEFAULT);
+
+    action = gtk_action_group_get_action (action_group,
+                          NEMO_ACTION_SHOW_HIDE_PATH_BAR);
+
+    g_settings_bind (nemo_preferences,
+             NEMO_PREFERENCES_FINDER_SHOW_PATH_BAR,
+             action,
+             "active",
+             G_SETTINGS_BIND_DEFAULT);
 
     action = gtk_action_group_get_action (action_group,
                           NEMO_ACTION_SHOW_HIDE_MENUBAR);

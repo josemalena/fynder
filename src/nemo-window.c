@@ -49,6 +49,7 @@
 #include "nemo-list-view.h"
 #include "nemo-statusbar.h"
 #include "nemo-finder-shortcuts.h"
+#include "nemo-finder-path-bar.h"
 
 #include <eel/eel-debug.h>
 #include <eel/eel-gtk-extensions.h>
@@ -602,6 +603,45 @@ on_menu_selection_done (GtkMenuShell *menushell,
 	window->details->menu_hide_delay_id = g_timeout_add (0, (GSourceFunc) hide_menu_on_delay, window);
 }
 
+
+static void
+finder_path_bar_clicked_cb (NemoFinderPathBar *bar,
+                            GFile *location,
+                            NemoWindow *window)
+{
+    nemo_window_go_to (window, location);
+}
+
+static void
+update_finder_path_bar_visibility (NemoWindow *window)
+{
+    gboolean visible;
+
+    if (window->details->finder_path_bar == NULL)
+        return;
+
+    visible = !window->details->disable_chrome &&
+              g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT) &&
+              g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_FINDER_SHOW_PATH_BAR);
+
+    gtk_widget_set_visible (window->details->finder_path_bar, visible);
+}
+
+void
+nemo_window_update_finder_path_bar (NemoWindow *window)
+{
+    NemoWindowSlot *slot;
+
+    g_return_if_fail (NEMO_IS_WINDOW (window));
+
+    if (window->details->finder_path_bar == NULL)
+        return;
+
+    slot = nemo_window_get_active_slot (window);
+    nemo_finder_path_bar_set_location (NEMO_FINDER_PATH_BAR (window->details->finder_path_bar),
+                                       slot != NULL ? slot->location : NULL);
+}
+
 static void
 nemo_window_constructed (GObject *self)
 {
@@ -710,6 +750,22 @@ nemo_window_constructed (GObject *self)
 
     nemo_statusbar = nemo_status_bar_new (window);
     window->details->nemo_status_bar = nemo_statusbar;
+
+    /* Path Bar estilo Finder: franja encima de la statusbar (apagada por defecto) */
+    window->details->finder_path_bar = nemo_finder_path_bar_new ();
+    gtk_widget_set_no_show_all (window->details->finder_path_bar, TRUE);
+    gtk_container_add (GTK_CONTAINER (grid), window->details->finder_path_bar);
+    g_signal_connect (window->details->finder_path_bar, "location-clicked",
+                      G_CALLBACK (finder_path_bar_clicked_cb), window);
+    g_signal_connect_object (nemo_preferences,
+                             "changed::" NEMO_PREFERENCES_FINDER_SHOW_PATH_BAR,
+                             G_CALLBACK (update_finder_path_bar_visibility), window,
+                             G_CONNECT_SWAPPED);
+    g_signal_connect_object (nemo_preferences,
+                             "changed::" NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT,
+                             G_CALLBACK (update_finder_path_bar_visibility), window,
+                             G_CONNECT_SWAPPED);
+    update_finder_path_bar_visibility (window);
 
     GtkWidget *sep = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
     gtk_container_add (GTK_CONTAINER (grid), sep);

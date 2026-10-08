@@ -347,6 +347,11 @@
       <summary>Show Path in the Finder toolbar</summary>
       <description>Show the Path button (edit location) in the Finder-style toolbar.</description>
     </key>
+    <key name="finder-show-path-bar" type="b">
+      <default>false</default>
+      <summary>Show the Finder-style path bar</summary>
+      <description>Show the path bar (icons and folder names separated by arrows) in a strip above the statusbar. With the Finder-style toolbar the breadcrumb is not shown in the toolbar.</description>
+    </key>
     <key name="shortcuts-finder-style" type="b">
       <default>true</default>
       <summary>Use Finder-style keyboard shortcuts</summary>

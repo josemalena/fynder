@@ -122,6 +122,7 @@ void             nemo_window_go_to_full           (NemoWindow    *window,
 void             nemo_window_new_tab              (NemoWindow    *window);
 
 GtkUIManager *   nemo_window_get_ui_manager       (NemoWindow    *window);
+void             nemo_window_update_finder_path_bar (NemoWindow  *window);
 GtkActionGroup * nemo_window_get_main_action_group (NemoWindow   *window);
 NemoNavigationState * 
                  nemo_window_get_navigation_state (NemoWindow    *window);

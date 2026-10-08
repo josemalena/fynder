@@ -1233,6 +1233,8 @@ nemo_window_pane_sync_location_widgets (NemoWindowPane *pane)
 		nemo_location_bar_set_location (NEMO_LOCATION_BAR (pane->location_bar), uri);
 		g_free (uri);
 		nemo_path_bar_set_path (NEMO_PATH_BAR (pane->path_bar), slot->location);
+		if (pane == nemo_window_get_active_pane (pane->window))
+			nemo_window_update_finder_path_bar (pane->window);
         restore_focus_widget (pane);
 
         action = gtk_action_group_get_action (pane->action_group, NEMO_ACTION_TOGGLE_LOCATION);
