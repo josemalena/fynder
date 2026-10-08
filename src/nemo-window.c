@@ -48,6 +48,7 @@
 #include "nemo-icon-view.h"
 #include "nemo-list-view.h"
 #include "nemo-statusbar.h"
+#include "nemo-finder-shortcuts.h"
 
 #include <eel/eel-debug.h>
 #include <eel/eel-gtk-extensions.h>
@@ -1230,6 +1231,10 @@ nemo_window_key_press_event (GtkWidget *widget,
 		if (gtk_window_propagate_key_event (GTK_WINDOW (window), event)) {
 			return TRUE;
 		}
+	}
+
+	if (nemo_finder_shortcuts_handle (window, event)) {
+		return TRUE;
 	}
 
 	for (i = 0; i < G_N_ELEMENTS (extra_window_keybindings); i++) {

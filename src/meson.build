@@ -60,6 +60,7 @@ nemoCommon_sources = [
   'nemo-properties-window.c',
   'nemo-query-editor.c',
   'nemo-template-config-widget.c',
+  'nemo-finder-shortcuts.c',
   'nemo-self-check-functions.c',
   'nemo-statusbar.c',
   'nemo-thumbnail-problem-bar.c',

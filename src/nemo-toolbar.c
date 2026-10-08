@@ -905,6 +905,21 @@ nemo_toolbar_clear_search (NemoToolbar *self)
     self->priv->updating_search = FALSE;
 }
 
+/* Cmd+F: enfoca el campo de búsqueda y selecciona su texto. FALSE si no está
+ * visible (layout Finder apagado). */
+gboolean
+nemo_toolbar_activate_search (NemoToolbar *self)
+{
+    g_return_val_if_fail (NEMO_IS_TOOLBAR (self), FALSE);
+
+    if (self->priv->search_entry == NULL ||
+        !gtk_widget_get_visible (self->priv->search_item))
+        return FALSE;
+
+    gtk_widget_grab_focus (self->priv->search_entry);
+    return TRUE;
+}
+
 void
 nemo_toolbar_focus_search (NemoToolbar *self)
 {

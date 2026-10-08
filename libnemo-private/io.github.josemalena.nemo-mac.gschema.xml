@@ -347,6 +347,11 @@
       <summary>Show Path in the Finder toolbar</summary>
       <description>Show the Path button (edit location) in the Finder-style toolbar.</description>
     </key>
+    <key name="shortcuts-finder-style" type="b">
+      <default>true</default>
+      <summary>Use Finder-style keyboard shortcuts</summary>
+      <description>Add Finder keyboard shortcuts (Command = Super): Command+Delete moves to the trash, Command+O opens, Return renames, Command+I shows properties and others. The usual Nemo shortcuts keep working.</description>
+    </key>
     <key name="sidebar-finder-sections" type="b">
       <default>true</default>
       <summary>Use Finder-style sidebar sections</summary>
