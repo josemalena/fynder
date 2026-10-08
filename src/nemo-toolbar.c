@@ -55,6 +55,7 @@ struct _NemoToolbarPriv {
     GtkWidget *icon_view_button;
     GtkWidget *list_view_button;
     GtkWidget *compact_view_button;
+    GtkWidget *view_switcher;
     GtkWidget *show_thumbnails_button;
     GtkWidget *show_extra_pane_button;
 
@@ -203,6 +204,12 @@ toolbar_update_appearance (NemoToolbar *self)
     icon_toolbar = g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_SHOW_TOGGLE_EXTRA_PANE_TOOLBAR);
     if ( icon_toolbar == FALSE ) { gtk_widget_hide (widgetitem); }
     else {gtk_widget_show (GTK_WIDGET(widgetitem));}
+
+    if (g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_TOOLBAR_LINKED_VIEW_SWITCHER)) {
+        gtk_style_context_add_class (gtk_widget_get_style_context (self->priv->view_switcher), "linked");
+    } else {
+        gtk_style_context_remove_class (gtk_widget_get_style_context (self->priv->view_switcher), "linked");
+    }
 }
 
 static void
@@ -352,14 +359,17 @@ nemo_toolbar_constructed (GObject *obj)
     self->priv->show_extra_pane_button = toolbar_create_toolbutton (self, TRUE, NEMO_ACTION_SHOW_HIDE_EXTRA_PANE);
     gtk_container_add (GTK_CONTAINER (box), self->priv->show_extra_pane_button);
 
+    self->priv->view_switcher = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+
     self->priv->icon_view_button = toolbar_create_toolbutton (self, TRUE, NEMO_ACTION_ICON_VIEW);
-    gtk_container_add (GTK_CONTAINER (box), self->priv->icon_view_button);
+    gtk_container_add (GTK_CONTAINER (self->priv->view_switcher), self->priv->icon_view_button);
 
     self->priv->list_view_button = toolbar_create_toolbutton (self, TRUE, NEMO_ACTION_LIST_VIEW);
-    gtk_container_add (GTK_CONTAINER (box), self->priv->list_view_button);
+    gtk_container_add (GTK_CONTAINER (self->priv->view_switcher), self->priv->list_view_button);
 
     self->priv->compact_view_button = toolbar_create_toolbutton (self, TRUE, NEMO_ACTION_COMPACT_VIEW);
-    gtk_container_add (GTK_CONTAINER (box), self->priv->compact_view_button);
+    gtk_container_add (GTK_CONTAINER (self->priv->view_switcher), self->priv->compact_view_button);
+    gtk_container_add (GTK_CONTAINER (box), self->priv->view_switcher);
 
     gtk_container_add (GTK_CONTAINER (tool_box), GTK_WIDGET (box));
     gtk_container_add (GTK_CONTAINER (self->priv->toolbar), GTK_WIDGET (tool_box));

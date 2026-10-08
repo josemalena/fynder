@@ -317,6 +317,11 @@
       <summary>Claim the FileManager1 D-Bus service</summary>
       <description>When enabled, Nemo Mac tries to provide org.freedesktop.FileManager1. Leave disabled while Nemo is the default file manager.</description>
     </key>
+    <key name="toolbar-linked-view-switcher" type="b">
+      <default>false</default>
+      <summary>Link the view selector buttons</summary>
+      <description>Display the icon, list and compact view buttons as a Finder-style segmented control.</description>
+    </key>
     <key name="date-font-choice" enum="io.github.josemalena.nemo-mac.DateFontChoice">
       <default>'auto-mono'</default>
       <summary>The font to use for the date/time columns.</summary>
