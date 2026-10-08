@@ -60,6 +60,8 @@ struct _NemoToolbarPriv {
     GtkWidget *show_thumbnails_button;
     GtkWidget *show_extra_pane_button;
     GtkWidget *arrange_button;
+    GtkWidget *action_button;
+    GtkWidget *action_menu;
 
     GtkUIManager *window_ui_manager;
 
@@ -171,6 +173,89 @@ arrange_button_clicked_cb (GtkButton *button,
         return;
 
     gtk_menu_popup_at_widget (GTK_MENU (menu), GTK_WIDGET (button),
+                              GDK_GRAVITY_SOUTH_WEST, GDK_GRAVITY_NORTH_WEST, NULL);
+}
+
+static GtkAction *
+toolbar_find_action (NemoToolbar *self,
+                     const gchar *name)
+{
+    GList *groups, *l;
+
+    if (self->priv->window_ui_manager == NULL)
+        return NULL;
+
+    groups = gtk_ui_manager_get_action_groups (self->priv->window_ui_manager);
+    for (l = groups; l != NULL; l = l->next) {
+        GtkAction *action = gtk_action_group_get_action (GTK_ACTION_GROUP (l->data), name);
+
+        if (action != NULL)
+            return action;
+    }
+
+    return NULL;
+}
+
+/* Acciones del elemento seleccionado, en el orden del Action ▾ del Finder.
+ * NULL separa grupos. Comprimir no está: en Nemo lo aportan extensiones. */
+static const gchar *action_menu_entries[] = {
+    NEMO_ACTION_NEW_FOLDER,
+    NULL,
+    NEMO_ACTION_OPEN,
+    "OtherApplication2",
+    NULL,
+    NEMO_ACTION_RENAME,
+    NEMO_ACTION_TRASH,
+    NULL,
+    NEMO_ACTION_PROPERTIES,
+    NEMO_ACTION_SHOW_HIDDEN_FILES,
+};
+
+static void
+action_button_clicked_cb (GtkButton *button,
+                          NemoToolbar *self)
+{
+    gboolean need_separator = FALSE, has_items = FALSE;
+    guint i;
+
+    if (self->priv->action_menu != NULL) {
+        gtk_widget_destroy (self->priv->action_menu);
+        g_clear_object (&self->priv->action_menu);
+    }
+
+    /* Se arma en cada clic para reflejar la vista y la selección actuales. */
+    self->priv->action_menu = gtk_menu_new ();
+    g_object_ref_sink (self->priv->action_menu);
+
+    for (i = 0; i < G_N_ELEMENTS (action_menu_entries); i++) {
+        GtkAction *action;
+        GtkWidget *item;
+
+        if (action_menu_entries[i] == NULL) {
+            need_separator = has_items;
+            continue;
+        }
+
+        action = toolbar_find_action (self, action_menu_entries[i]);
+        if (action == NULL || !gtk_action_get_visible (action))
+            continue;
+
+        if (need_separator) {
+            gtk_menu_shell_append (GTK_MENU_SHELL (self->priv->action_menu),
+                                   gtk_separator_menu_item_new ());
+            need_separator = FALSE;
+        }
+
+        item = gtk_action_create_menu_item (action);
+        gtk_menu_shell_append (GTK_MENU_SHELL (self->priv->action_menu), item);
+        has_items = TRUE;
+    }
+
+    if (!has_items)
+        return;
+
+    gtk_widget_show_all (self->priv->action_menu);
+    gtk_menu_popup_at_widget (GTK_MENU (self->priv->action_menu), GTK_WIDGET (button),
                               GDK_GRAVITY_SOUTH_WEST, GDK_GRAVITY_NORTH_WEST, NULL);
 }
 
@@ -303,6 +388,7 @@ toolbar_update_appearance (NemoToolbar *self)
     }
 
     toolbar_update_arrange_button (self);
+    gtk_widget_set_visible (self->priv->action_button, finder_layout);
 }
 
 static void
@@ -472,6 +558,12 @@ nemo_toolbar_constructed (GObject *obj)
                       G_CALLBACK (arrange_button_clicked_cb), self);
     gtk_container_add (GTK_CONTAINER (box), self->priv->arrange_button);
 
+    self->priv->action_button = toolbar_create_menu_button ("emblem-system-symbolic",
+                                                            _("Actions for the selected items"));
+    g_signal_connect (self->priv->action_button, "clicked",
+                      G_CALLBACK (action_button_clicked_cb), self);
+    gtk_container_add (GTK_CONTAINER (box), self->priv->action_button);
+
     gtk_container_add (GTK_CONTAINER (tool_box), GTK_WIDGET (box));
     gtk_container_add (GTK_CONTAINER (self->priv->toolbar), GTK_WIDGET (tool_box));
 
@@ -544,6 +636,11 @@ nemo_toolbar_dispose (GObject *obj)
 	NemoToolbar *self = NEMO_TOOLBAR (obj);
 
 	g_clear_object (&self->priv->action_group);
+
+    if (self->priv->action_menu != NULL) {
+        gtk_widget_destroy (self->priv->action_menu);
+        g_clear_object (&self->priv->action_menu);
+    }
 
     if (self->priv->window_ui_manager != NULL) {
         g_signal_handlers_disconnect_by_data (self->priv->window_ui_manager, self);
