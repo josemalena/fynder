@@ -552,6 +552,8 @@ restore_expand_state_foreach (GtkTreeModel *model,
                 gtk_tree_view_expand_to_path (sidebar->tree_view, path);
             else
                 gtk_tree_view_collapse_row (sidebar->tree_view, path);
+        } else if (section_type == SECTION_ICLOUD) {
+            gtk_tree_view_expand_to_path (sidebar->tree_view, path);
         } else if (section_type == SECTION_DEVICES) {
             if (sidebar->devices_expanded)
                 gtk_tree_view_expand_to_path (sidebar->tree_view, path);
