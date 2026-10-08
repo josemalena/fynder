@@ -448,6 +448,67 @@ add_place (NemoPlacesSidebar *sidebar,
 	   const char *tooltip,
        int df_percent,
        gboolean show_df_percent,
+       GtkTreeIter cat_iter);
+
+static gboolean
+uri_is_user_special_directory (const char *uri,
+                               GUserDirectory directory)
+{
+    const char *path;
+    gchar *special_uri;
+    gboolean matches;
+
+    path = g_get_user_special_dir (directory);
+    if (path == NULL) {
+        return FALSE;
+    }
+
+    special_uri = g_filename_to_uri (path, NULL, NULL);
+    matches = g_strcmp0 (uri, special_uri) == 0;
+    g_free (special_uri);
+
+    return matches;
+}
+
+static const char *
+get_finder_sidebar_icon_name (const char *uri,
+                              GMount *mount,
+                              const char *fallback)
+{
+    GFile *root;
+    const char *icon_name = fallback;
+
+    if (g_strcmp0 (uri, "recent:///") == 0) {
+        icon_name = "document-open-recent-symbolic";
+    } else if (uri_is_user_special_directory (uri, G_USER_DIRECTORY_DOCUMENTS)) {
+        icon_name = "folder-documents-symbolic";
+    } else if (uri_is_user_special_directory (uri, G_USER_DIRECTORY_DOWNLOAD)) {
+        icon_name = "folder-download-symbolic";
+    } else if (mount != NULL) {
+        root = g_mount_get_root (mount);
+        if (!g_file_is_native (root)) {
+            icon_name = "folder-remote-symbolic";
+        }
+        g_object_unref (root);
+    }
+
+    return icon_name;
+}
+
+static GtkTreeIter
+add_place (NemoPlacesSidebar *sidebar,
+	   PlaceType place_type,
+	   SectionType section_type,
+	   const char *name,
+	   const char *icon_name,
+	   const char *uri,
+	   GDrive *drive,
+	   GVolume *volume,
+	   GMount *mount,
+	   int index,
+	   const char *tooltip,
+       int df_percent,
+       gboolean show_df_percent,
        GtkTreeIter cat_iter)
 {
 	GtkTreeIter           iter;
@@ -474,10 +535,16 @@ add_place (NemoPlacesSidebar *sidebar,
     theme_icon_name = icon_name;
     if (icon_name != NULL &&
         g_settings_get_boolean (nemo_preferences,
-                                NEMO_PREFERENCES_SIDEBAR_FINDER_SECTIONS) &&
-        g_str_has_prefix (icon_name, "xsi-") &&
-        gtk_icon_theme_has_icon (gtk_icon_theme_get_default (), icon_name + 4)) {
-        theme_icon_name = icon_name + 4;
+                                NEMO_PREFERENCES_SIDEBAR_FINDER_SECTIONS)) {
+        const char *finder_icon_name;
+
+        finder_icon_name = get_finder_sidebar_icon_name (uri, mount, icon_name);
+        if (gtk_icon_theme_has_icon (gtk_icon_theme_get_default (), finder_icon_name)) {
+            theme_icon_name = finder_icon_name;
+        } else if (g_str_has_prefix (icon_name, "xsi-") &&
+                   gtk_icon_theme_has_icon (gtk_icon_theme_get_default (), icon_name + 4)) {
+            theme_icon_name = icon_name + 4;
+        }
     }
 
     gicon = (theme_icon_name != NULL) ? g_themed_icon_new (theme_icon_name) : NULL;
