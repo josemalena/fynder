@@ -422,10 +422,10 @@ nemo_application_check_required_directory (NemoApplication *application,
         const char *detail_string;
         GtkDialog *dialog;
 
-        error_string = g_strdup_printf (_("Nemo could not create the required folder \"%s\"."),
+        error_string = g_strdup_printf (_("Nemo Finder could not create the required folder \"%s\"."),
                                         path);
-        detail_string = _("Before running Nemo, please create the following folder, or "
-                          "set permissions such that Nemo can create it.");
+        detail_string = _("Before running Nemo Finder, please create the following folder, or "
+                          "set permissions such that Nemo Finder can create it.");
 
         dialog = eel_show_error_dialog (error_string, detail_string, NULL);
         /* We need the main event loop so the user has a chance to see the dialog. */
