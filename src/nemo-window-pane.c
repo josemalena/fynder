@@ -33,6 +33,7 @@
 #include "nemo-location-bar.h"
 #include "nemo-notebook.h"
 #include "nemo-pathbar.h"
+#include "nemo-query-editor.h"
 #include "nemo-toolbar.h"
 #include "nemo-window-manage-views.h"
 #include "nemo-window-private.h"
@@ -798,6 +799,46 @@ action_show_hide_search_callback (GtkAction *action,
 	}
 }
 
+/* El campo de búsqueda del toolbar Finder usa la misma búsqueda de Nemo: abre
+ * el editor de consultas con la acción de búsqueda y le pasa el texto. */
+static void
+toolbar_search_text_changed_cb (NemoToolbar *toolbar,
+				const gchar *text,
+				NemoWindowPane *pane)
+{
+	NemoWindowSlot *slot = pane->active_slot;
+	GtkAction *action;
+	gboolean active;
+
+	if (slot == NULL || slot->query_editor == NULL)
+		return;
+
+	action = gtk_action_group_get_action (pane->action_group, NEMO_ACTION_SEARCH);
+	active = nemo_query_editor_get_active (NEMO_QUERY_EDITOR (slot->query_editor));
+
+	if (text == NULL || text[0] == '\0') {
+		if (active)
+			gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), FALSE);
+		return;
+	}
+
+	if (!active)
+		gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), TRUE);
+
+	nemo_query_editor_set_text (NEMO_QUERY_EDITOR (slot->query_editor), text);
+
+	/* abrir la búsqueda mueve el foco al editor; devolverlo para seguir escribiendo */
+	nemo_toolbar_focus_search (toolbar);
+}
+
+static void
+search_action_toggled_cb (GtkToggleAction *action,
+			  NemoWindowPane *pane)
+{
+	if (!gtk_toggle_action_get_active (action))
+		nemo_toolbar_clear_search (NEMO_TOOLBAR (pane->tool_bar));
+}
+
 static void
 setup_search_action (NemoWindowPane *pane)
 {
@@ -807,6 +848,10 @@ setup_search_action (NemoWindowPane *pane)
 	action = gtk_action_group_get_action (group, NEMO_ACTION_SEARCH);
 	g_signal_connect (action, "activate",
 			  G_CALLBACK (action_show_hide_search_callback), pane);
+	g_signal_connect (action, "toggled",
+			  G_CALLBACK (search_action_toggled_cb), pane);
+	g_signal_connect (pane->tool_bar, "search-text-changed",
+			  G_CALLBACK (toolbar_search_text_changed_cb), pane);
 }
 
 static void

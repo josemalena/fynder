@@ -36,6 +36,8 @@ G_DECLARE_FINAL_TYPE (NemoQueryEditor, nemo_query_editor, NEMO, QUERY_EDITOR, Gt
 
 GtkWidget* nemo_query_editor_new                (void);
 
+void         nemo_query_editor_set_text           (NemoQueryEditor *editor,
+                                                   const gchar     *text);
 NemoQuery   *nemo_query_editor_get_query          (NemoQueryEditor *editor);
 void         nemo_query_editor_set_query          (NemoQueryEditor *editor,
                                                    NemoQuery       *query);

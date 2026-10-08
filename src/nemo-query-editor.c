@@ -488,6 +488,16 @@ nemo_query_editor_changed (NemoQueryEditor *editor)
 	nemo_query_editor_changed_force (editor, TRUE);
 }
 
+void
+nemo_query_editor_set_text (NemoQueryEditor *editor,
+                            const gchar     *text)
+{
+    g_return_if_fail (NEMO_IS_QUERY_EDITOR (editor));
+
+    if (g_strcmp0 (gtk_entry_get_text (GTK_ENTRY (editor->priv->file_entry)), text) != 0)
+        gtk_entry_set_text (GTK_ENTRY (editor->priv->file_entry), text != NULL ? text : "");
+}
+
 NemoQuery *
 nemo_query_editor_get_query (NemoQueryEditor *editor)
 {

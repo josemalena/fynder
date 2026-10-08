@@ -64,6 +64,8 @@ GType nemo_toolbar_get_type (void);
 
 GtkWidget *nemo_toolbar_new (GtkActionGroup *action_group);
 void nemo_toolbar_set_ui_manager (NemoToolbar *self, GtkUIManager *ui_manager);
+void nemo_toolbar_clear_search (NemoToolbar *self);
+void nemo_toolbar_focus_search (NemoToolbar *self);
 
 gboolean  nemo_toolbar_get_show_location_entry (NemoToolbar *self);
 GtkWidget *nemo_toolbar_get_path_bar (NemoToolbar *self);

@@ -62,6 +62,9 @@ struct _NemoToolbarPriv {
     GtkWidget *arrange_button;
     GtkWidget *action_button;
     GtkWidget *action_menu;
+    GtkWidget *search_item;
+    GtkWidget *search_entry;
+    gboolean updating_search;
 
     GtkUIManager *window_ui_manager;
 
@@ -86,6 +89,7 @@ static GParamSpec *properties[NUM_PROPERTIES] = { NULL, };
 
 enum {
     CHECK_ADMIN_LOCATION,
+    SEARCH_TEXT_CHANGED,
     LAST_SIGNAL
 };
 
@@ -259,6 +263,19 @@ action_button_clicked_cb (GtkButton *button,
                               GDK_GRAVITY_SOUTH_WEST, GDK_GRAVITY_NORTH_WEST, NULL);
 }
 
+#define FINDER_SEARCH_WIDTH 220
+
+static void
+search_entry_changed_cb (GtkSearchEntry *entry,
+                         NemoToolbar *self)
+{
+    if (self->priv->updating_search)
+        return;
+
+    g_signal_emit (self, signals[SEARCH_TEXT_CHANGED], 0,
+                   gtk_entry_get_text (GTK_ENTRY (entry)));
+}
+
 static void
 toolbar_update_appearance (NemoToolbar *self)
 {
@@ -389,6 +406,7 @@ toolbar_update_appearance (NemoToolbar *self)
 
     toolbar_update_arrange_button (self);
     gtk_widget_set_visible (self->priv->action_button, finder_layout);
+    gtk_widget_set_visible (self->priv->search_item, finder_layout);
 }
 
 static void
@@ -570,6 +588,20 @@ nemo_toolbar_constructed (GObject *obj)
     gtk_widget_show_all (GTK_WIDGET (tool_box));
     gtk_widget_set_margin_left (GTK_WIDGET (tool_box), 6);
 
+    /* Campo de búsqueda fijo a la derecha (solo layout Finder) */
+    tool_box = gtk_tool_item_new ();
+    self->priv->search_item = GTK_WIDGET (tool_box);
+    self->priv->search_entry = gtk_search_entry_new ();
+    gtk_entry_set_placeholder_text (GTK_ENTRY (self->priv->search_entry), _("Search"));
+    gtk_widget_set_size_request (self->priv->search_entry, FINDER_SEARCH_WIDTH, -1);
+    gtk_widget_set_valign (self->priv->search_entry, GTK_ALIGN_CENTER);
+    g_signal_connect (self->priv->search_entry, "search-changed",
+                      G_CALLBACK (search_entry_changed_cb), self);
+    gtk_container_add (GTK_CONTAINER (tool_box), self->priv->search_entry);
+    gtk_container_add (GTK_CONTAINER (self->priv->toolbar), GTK_WIDGET (tool_box));
+    gtk_widget_show_all (GTK_WIDGET (tool_box));
+    gtk_widget_set_margin_left (GTK_WIDGET (tool_box), 6);
+
     g_signal_connect_swapped (nemo_preferences,
                   "changed",
                   G_CALLBACK (toolbar_update_appearance), self);
@@ -691,6 +723,13 @@ nemo_toolbar_class_init (NemoToolbarClass *klass)
                       0, NULL, NULL, NULL,
                       G_TYPE_BOOLEAN, 0);
 
+    signals[SEARCH_TEXT_CHANGED] =
+        g_signal_new ("search-text-changed",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      0, NULL, NULL, NULL,
+                      G_TYPE_NONE, 1, G_TYPE_STRING);
+
 	g_type_class_add_private (klass, sizeof (NemoToolbarClass));
 	g_object_class_install_properties (oclass, NUM_PROPERTIES, properties);
 }
@@ -723,6 +762,28 @@ nemo_toolbar_set_ui_manager (NemoToolbar *self,
     }
 
     toolbar_update_arrange_button (self);
+}
+
+void
+nemo_toolbar_clear_search (NemoToolbar *self)
+{
+    g_return_if_fail (NEMO_IS_TOOLBAR (self));
+
+    if (self->priv->search_entry == NULL ||
+        gtk_entry_get_text_length (GTK_ENTRY (self->priv->search_entry)) == 0)
+        return;
+
+    self->priv->updating_search = TRUE;
+    gtk_entry_set_text (GTK_ENTRY (self->priv->search_entry), "");
+    self->priv->updating_search = FALSE;
+}
+
+void
+nemo_toolbar_focus_search (NemoToolbar *self)
+{
+    g_return_if_fail (NEMO_IS_TOOLBAR (self));
+
+    gtk_entry_grab_focus_without_selecting (GTK_ENTRY (self->priv->search_entry));
 }
 
 GtkWidget *

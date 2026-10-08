@@ -121,6 +121,21 @@ NemoDesktopWindow GtkPaned {
     border-bottom-right-radius: 5px;
 }
 
+.nemo-finder-toolbar entry {
+    min-height: 26px;
+    margin: 2px;
+    border-radius: 6px;
+    background-color: #2f302d;
+    background-image: none;
+    border-color: #292a28;
+    color: #f1f1ed;
+    caret-color: #f1f1ed;
+}
+
+.nemo-finder-toolbar entry:focus {
+    border-color: #73746f;
+}
+
 /* EelEditableLabel (icon labels) */
 .nemo-desktop.view .entry,
 .nemo-desktop.view .entry:active,
