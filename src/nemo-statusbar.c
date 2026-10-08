@@ -134,9 +134,21 @@ action_show_location_callback (GtkButton *button, NemoStatusBar *bar)
 static void
 sync_location_button_visibility (NemoStatusBar *bar)
 {
-    gtk_widget_set_visible (bar->location_button,
-                            g_settings_get_boolean (nemo_preferences,
-                                                    NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT));
+    gboolean finder_layout = g_settings_get_boolean (nemo_preferences,
+                                                     NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT);
+    GtkWidget *message_area = gtk_statusbar_get_message_area (GTK_STATUSBAR (bar->real_statusbar));
+    GList *children = gtk_container_get_children (GTK_CONTAINER (message_area));
+
+    gtk_widget_set_visible (bar->location_button, finder_layout);
+
+    /* En el Finder el texto («3 items, 50 GB available») va centrado. */
+    if (children != NULL) {
+        gtk_widget_set_halign (GTK_WIDGET (children->data),
+                               finder_layout ? GTK_ALIGN_CENTER : GTK_ALIGN_START);
+        gtk_widget_set_hexpand (GTK_WIDGET (children->data), finder_layout);
+    }
+
+    g_list_free (children);
 }
 
 static void
