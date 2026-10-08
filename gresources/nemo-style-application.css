@@ -43,21 +43,32 @@ NemoDesktopWindow GtkPaned {
 
 /* Finder sidebar: enabled only by sidebar-finder-sections. */
 .nemo-finder-sidebar,
-.nemo-finder-sidebar > viewport,
-.nemo-finder-sidebar-tree,
-.nemo-finder-sidebar-tree.view {
+.nemo-finder-sidebar > viewport {
     background-color: #373834;
     color: #f0f0ed;
 }
 
+/* El resaltado de la fila lo dibuja nemo-places-sidebar.c (una sola píldora). */
+.nemo-finder-sidebar-tree,
+.nemo-finder-sidebar-tree.view,
+.nemo-finder-sidebar-tree.view:hover,
 .nemo-finder-sidebar-tree.view:selected,
-.nemo-finder-sidebar-tree.view:selected:focus {
-    background-color: #484944;
-    color: #ffffff;
+.nemo-finder-sidebar-tree.view:selected:focus,
+.nemo-finder-sidebar-tree.view.cell:selected,
+.nemo-finder-sidebar-tree.view.cell:selected:focus {
+    background-color: transparent;
+    background-image: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    outline: none;
+    color: #f0f0ed;
 }
 
-.nemo-finder-sidebar-tree.view:hover {
-    background-color: #464742;
+.nemo-finder-sidebar-tree.view:selected,
+.nemo-finder-sidebar-tree.view:selected:focus,
+.nemo-finder-sidebar-tree.view.cell:selected,
+.nemo-finder-sidebar-tree.view.cell:selected:focus {
     color: #ffffff;
 }
 

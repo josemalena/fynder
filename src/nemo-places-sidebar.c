@@ -455,23 +455,66 @@ uri_is_user_special_directory (const char *uri,
                                GUserDirectory directory)
 {
     const char *path;
-    gchar *special_uri;
+    const char *fallback = NULL;
+    gchar *special_uri, *fallback_path = NULL;
     gchar *home_uri;
     gboolean matches;
 
-    path = g_get_user_special_dir (directory);
-    if (path == NULL) {
-        return FALSE;
+    switch (directory) {
+    case G_USER_DIRECTORY_DOCUMENTS: fallback = "Documents"; break;
+    case G_USER_DIRECTORY_DOWNLOAD:  fallback = "Downloads"; break;
+    case G_USER_DIRECTORY_MUSIC:     fallback = "Music";     break;
+    case G_USER_DIRECTORY_PICTURES:  fallback = "Pictures";  break;
+    case G_USER_DIRECTORY_VIDEOS:    fallback = "Videos";    break;
+    default: break;
     }
 
-    special_uri = g_filename_to_uri (path, NULL, NULL);
+    path = g_get_user_special_dir (directory);
     home_uri = nemo_get_home_directory_uri ();
-    matches = g_strcmp0 (special_uri, home_uri) != 0 &&
+
+    /* user-dirs.dirs puede apuntar la carpeta a $HOME (o no definirla):
+     * en ese caso se usa ~/<nombre estándar>. */
+    special_uri = (path != NULL) ? g_filename_to_uri (path, NULL, NULL) : NULL;
+    if ((special_uri == NULL || g_strcmp0 (special_uri, home_uri) == 0) && fallback != NULL) {
+        g_free (special_uri);
+        fallback_path = g_build_filename (g_get_home_dir (), fallback, NULL);
+        special_uri = g_filename_to_uri (fallback_path, NULL, NULL);
+    }
+
+    matches = special_uri != NULL &&
+              g_strcmp0 (special_uri, home_uri) != 0 &&
               g_strcmp0 (uri, special_uri) == 0;
+
     g_free (special_uri);
+    g_free (fallback_path);
     g_free (home_uri);
 
     return matches;
+}
+
+static gboolean
+uri_is_remote_server (const char *uri)
+{
+    static const char *schemes[] = {
+        "smb", "sftp", "ssh", "ftp", "ftps", "nfs", "dav", "davs", "afp", "afc", NULL
+    };
+    char *scheme;
+    gboolean remote = FALSE;
+    int i;
+
+    if (uri == NULL)
+        return FALSE;
+
+    scheme = g_uri_parse_scheme (uri);
+    for (i = 0; scheme != NULL && schemes[i] != NULL; i++) {
+        if (g_ascii_strcasecmp (scheme, schemes[i]) == 0) {
+            remote = TRUE;
+            break;
+        }
+    }
+    g_free (scheme);
+
+    return remote;
 }
 
 static const char *
@@ -503,13 +546,12 @@ get_finder_sidebar_icon_name (const char *uri,
     } else if (g_strcmp0 (name, "Downloads") == 0 ||
                g_strcmp0 (name, "Descargas") == 0) {
         icon_name = "folder-download-symbolic";
+    } else if (uri_is_remote_server (uri)) {
+        icon_name = "network-server-symbolic";
     } else if (mount != NULL) {
         root = g_mount_get_root (mount);
         if (!g_file_is_native (root)) {
-            icon_name = gtk_icon_theme_has_icon (gtk_icon_theme_get_default (),
-                                                 "network-server-symbolic")
-                        ? "network-server-symbolic"
-                        : "folder-remote-symbolic";
+            icon_name = "network-server-symbolic";
         }
         g_object_unref (root);
     }
@@ -620,8 +662,9 @@ restore_selection_foreach (GtkTreeModel *model,
 	gtk_tree_model_get (model, iter,
 			    PLACES_SIDEBAR_COLUMN_URI, &uri,
 			    -1);
-	if (g_strcmp0 (uri, data->last_uri) == 0 ||
-	    g_strcmp0 (uri, data->location) == 0) {
+	if (uri != NULL &&
+	    (g_strcmp0 (uri, data->last_uri) == 0 ||
+	     g_strcmp0 (uri, data->location) == 0)) {
 		data->path = gtk_tree_path_copy (path);
 	}
 
@@ -832,6 +875,155 @@ get_icon_name (const gchar *uri)
     return icon_name;
 }
 
+static GtkTreeIter
+add_recent_place (NemoPlacesSidebar *sidebar,
+                  gboolean set_bookend,
+                  GtkTreeIter cat_iter)
+{
+    gboolean recent_enabled;
+
+    recent_enabled = g_settings_get_boolean (cinnamon_privacy_preferences,
+                                             NEMO_PREFERENCES_RECENT_ENABLED);
+
+    if (recent_enabled && eel_vfs_supports_uri_scheme ("recent")) {
+        const char *mount_uri = "recent:///";
+
+        cat_iter = add_place (sidebar, PLACES_BUILT_IN,
+                              SECTION_COMPUTER,
+                              _("Recent"), NEMO_ICON_SYMBOLIC_FOLDER_RECENT, mount_uri,
+                              NULL, NULL, NULL, 0,
+                              _("Recent files"), 0, FALSE, cat_iter);
+
+        if (set_bookend && sidebar->bottom_bookend_uri == NULL) {
+            sidebar->bottom_bookend_uri = g_strdup (mount_uri);
+        }
+    }
+
+    return cat_iter;
+}
+
+static GtkTreeIter
+add_home_place (NemoPlacesSidebar *sidebar,
+                gboolean set_bookend,
+                GtkTreeIter cat_iter)
+{
+    char *mount_uri, *icon, *tooltip, *tooltip_info;
+    GFile *df_file;
+    gint full;
+
+    mount_uri = nemo_get_home_directory_uri ();
+    icon = get_icon_name (mount_uri);
+
+    df_file = g_file_new_for_uri (mount_uri);
+    full = get_disk_full (df_file, &tooltip_info);
+    g_clear_object (&df_file);
+
+    tooltip = g_strdup_printf (_("Open your personal folder\n%s"), tooltip_info);
+    g_free (tooltip_info);
+    cat_iter = add_place (sidebar, PLACES_BUILT_IN,
+                           SECTION_COMPUTER,
+                           _("Home"), icon,
+                           mount_uri, NULL, NULL, NULL, 0,
+                           tooltip,
+                           full, home_on_different_fs (mount_uri) && full > -1,
+                           cat_iter);
+    g_free (icon);
+    if (set_bookend) {
+        g_free (sidebar->top_bookend_uri);
+        sidebar->top_bookend_uri = g_strdup (mount_uri);
+    }
+    g_free (mount_uri);
+    g_free (tooltip);
+
+    return cat_iter;
+}
+
+/* Orden Finder de las carpetas del usuario: Music, Documents, Downloads, Pictures, Movies. */
+static const GUserDirectory finder_dir_order[] = {
+    G_USER_DIRECTORY_MUSIC, G_USER_DIRECTORY_DOCUMENTS, G_USER_DIRECTORY_DOWNLOAD,
+    G_USER_DIRECTORY_PICTURES, G_USER_DIRECTORY_VIDEOS
+};
+
+/* Orden con el que Nemo crea los marcadores por defecto. */
+static const GUserDirectory nemo_default_dir_order[] = {
+    G_USER_DIRECTORY_DOCUMENTS, G_USER_DIRECTORY_MUSIC, G_USER_DIRECTORY_PICTURES,
+    G_USER_DIRECTORY_VIDEOS, G_USER_DIRECTORY_DOWNLOAD
+};
+
+static int
+user_dir_rank (const char *uri,
+               const GUserDirectory *order,
+               int n)
+{
+    int i;
+
+    for (i = 0; i < n; i++) {
+        if (uri_is_user_special_directory (uri, order[i]))
+            return i;
+    }
+
+    return -1;
+}
+
+/* TRUE si las carpetas del usuario siguen en el orden por defecto de Nemo,
+ * es decir, si la persona no las reordenó. */
+static gboolean
+bookmarks_in_default_order (NemoPlacesSidebar *sidebar,
+                            int count)
+{
+    int i, last = -1;
+
+    for (i = 0; i < count; i++) {
+        NemoBookmark *bookmark = nemo_bookmark_list_item_at (sidebar->bookmarks, i);
+        char *uri = nemo_bookmark_get_uri (bookmark);
+        int rank = user_dir_rank (uri, nemo_default_dir_order,
+                                  G_N_ELEMENTS (nemo_default_dir_order));
+        g_free (uri);
+
+        if (rank < 0)
+            continue;
+        if (rank < last)
+            return FALSE;
+        last = rank;
+    }
+
+    return TRUE;
+}
+
+/* Llena order[] con los índices de los primeros count marcadores en el orden
+ * Finder: carpetas del usuario primero, el resto en su orden original. */
+static void
+finder_bookmark_order (NemoPlacesSidebar *sidebar,
+                       int count,
+                       int *order)
+{
+    int n = 0, i, d;
+
+    for (d = 0; d < (int) G_N_ELEMENTS (finder_dir_order); d++) {
+        for (i = 0; i < count; i++) {
+            NemoBookmark *bookmark = nemo_bookmark_list_item_at (sidebar->bookmarks, i);
+            char *uri = nemo_bookmark_get_uri (bookmark);
+            gboolean match = uri_is_user_special_directory (uri, finder_dir_order[d]);
+            g_free (uri);
+            if (match)
+                order[n++] = i;
+        }
+    }
+
+    for (i = 0; i < count; i++) {
+        gboolean placed = FALSE;
+        int k;
+        for (k = 0; k < n; k++) {
+            if (order[k] == i) {
+                placed = TRUE;
+                break;
+            }
+        }
+        if (!placed)
+            order[n++] = i;
+    }
+}
+
 static void
 update_places (NemoPlacesSidebar *sidebar)
 {
@@ -894,27 +1086,33 @@ update_places (NemoPlacesSidebar *sidebar)
                              finder_sections ? _("Favorites") : _("My Computer"));
     /* add built in bookmarks */
 
-    /* home folder */
-    mount_uri = nemo_get_home_directory_uri ();
-    icon = get_icon_name (mount_uri);
+    bookmark_count = nemo_bookmark_list_length (sidebar->bookmarks);
+    /* in certain situations (i.e. removed a bookmark), the breakpoint is smaller than
+     * the number of bookmarks - make sure to fix this before iterating through a list of them.
+     * We don't overwrite the stored breakpoint because the bookmark list could simply be reloading,
+     * and we want the original number still when we update places again.
+     */
+    gint temp_breakpoint = sidebar->bookmark_breakpoint;
 
-    df_file = g_file_new_for_uri (mount_uri);
-    full = get_disk_full (df_file, &tooltip_info);
-    g_clear_object (&df_file);
+    if (temp_breakpoint < 0 ||
+        temp_breakpoint > bookmark_count ||
+        finder_sections) {
+        /* En modo Finder no hay encabezado «Bookmarks»: todos van en Favorites. */
+        temp_breakpoint = bookmark_count;
+    }
 
-    tooltip = g_strdup_printf (_("Open your personal folder\n%s"), tooltip_info);
-    g_free (tooltip_info);
-    cat_iter = add_place (sidebar, PLACES_BUILT_IN,
-                           SECTION_COMPUTER,
-                           _("Home"), icon,
-                           mount_uri, NULL, NULL, NULL, 0,
-                           tooltip,
-                           full, home_on_different_fs (mount_uri) && full > -1,
-                           cat_iter);
-    g_free (icon);
-    sidebar->top_bookend_uri = g_strdup (mount_uri);
-    g_free (mount_uri);
-    g_free (tooltip);
+    gboolean finder_order = finder_sections &&
+                            bookmarks_in_default_order (sidebar, temp_breakpoint);
+
+    /* En modo Finder, Recent va primero, como «Recents» en el Finder. */
+    if (finder_sections) {
+        cat_iter = add_recent_place (sidebar, FALSE, cat_iter);
+    }
+
+    /* home folder (con el orden Finder va después de las carpetas del usuario) */
+    if (!finder_order) {
+        cat_iter = add_home_place (sidebar, TRUE, cat_iter);
+    }
 
     if (should_show_desktop ()) {
         /* desktop */
@@ -935,20 +1133,18 @@ update_places (NemoPlacesSidebar *sidebar)
     }
 
     /* add bookmarks */
-    bookmark_count = nemo_bookmark_list_length (sidebar->bookmarks);
-    /* in certain situations (i.e. removed a bookmark), the breakpoint is smaller than
-     * the number of bookmarks - make sure to fix this before iterating through a list of them.
-     * We don't overwrite the stored breakpoint because the bookmark list could simply be reloading,
-     * and we want the original number still when we update places again.
-     */
-    gint temp_breakpoint = sidebar->bookmark_breakpoint;
+    int *bm_order = g_new0 (int, MAX (temp_breakpoint, 1));
+    gboolean home_added = FALSE;
 
-    if (temp_breakpoint < 0 ||
-        temp_breakpoint > bookmark_count) {
-        temp_breakpoint = bookmark_count;
+    if (finder_order) {
+        finder_bookmark_order (sidebar, temp_breakpoint, bm_order);
+    } else {
+        for (bookmark_index = 0; bookmark_index < temp_breakpoint; ++bookmark_index)
+            bm_order[bookmark_index] = bookmark_index;
     }
 
-    for (bookmark_index = 0; bookmark_index < temp_breakpoint; ++bookmark_index) {
+    for (int pos = 0; pos < temp_breakpoint; ++pos) {
+        bookmark_index = bm_order[pos];
         bookmark = nemo_bookmark_list_item_at (sidebar->bookmarks, bookmark_index);
 
         root = nemo_bookmark_get_location (bookmark);
@@ -957,6 +1153,26 @@ update_places (NemoPlacesSidebar *sidebar)
         icon = nemo_bookmark_get_icon_name (bookmark);
         mount_uri = nemo_bookmark_get_uri (bookmark);
         tooltip = g_file_get_parse_name (root);
+
+        if (finder_sections &&
+            uri_is_user_special_directory (mount_uri, G_USER_DIRECTORY_VIDEOS)) {
+            gchar *dir_path = g_filename_from_uri (mount_uri, NULL, NULL);
+            gchar *dir_name = dir_path != NULL ? g_path_get_basename (dir_path) : NULL;
+
+            /* solo si la persona no le puso otro nombre */
+            if (g_strcmp0 (bookmark_name, dir_name) == 0) {
+                bookmark_name = _("Movies");
+            }
+            g_free (dir_name);
+            g_free (dir_path);
+        }
+
+        /* Home va justo después de las carpetas del usuario */
+        if (finder_order && !home_added &&
+            user_dir_rank (mount_uri, finder_dir_order, G_N_ELEMENTS (finder_dir_order)) < 0) {
+            cat_iter = add_home_place (sidebar, FALSE, cat_iter);
+            home_added = TRUE;
+        }
 
         cat_iter = add_place (sidebar, PLACES_BOOKMARK,
                                SECTION_XDG_BOOKMARKS,
@@ -969,6 +1185,12 @@ update_places (NemoPlacesSidebar *sidebar)
         g_free (mount_uri);
         g_free (tooltip);
     }
+
+    if (finder_order && !home_added) {
+        cat_iter = add_home_place (sidebar, FALSE, cat_iter);
+    }
+    g_free (bm_order);
+    bookmark_index = temp_breakpoint;
 
     if (eel_vfs_supports_uri_scheme ("favorites")) {
         gint n = xapp_favorites_get_n_favorites (xapp_favorites_get_default ());
@@ -986,24 +1208,9 @@ update_places (NemoPlacesSidebar *sidebar)
         }
     }
 
-    gboolean recent_enabled;
-    recent_enabled = g_settings_get_boolean (cinnamon_privacy_preferences,
-                                             NEMO_PREFERENCES_RECENT_ENABLED);
-
-    if (recent_enabled && eel_vfs_supports_uri_scheme ("recent")) {
-        mount_uri = (char *)"recent:///"; /* No need to strdup */
-        icon = NEMO_ICON_SYMBOLIC_FOLDER_RECENT;
-        cat_iter = add_place (sidebar, PLACES_BUILT_IN,
-                              SECTION_COMPUTER,
-                              _("Recent"), icon, mount_uri,
-                              NULL, NULL, NULL, 0,
-                              _("Recent files"), 0, FALSE, cat_iter);
-
-        if (sidebar->bottom_bookend_uri == NULL) {
-            sidebar->bottom_bookend_uri = g_strdup (mount_uri);
-        }
+    if (!finder_sections) {
+        cat_iter = add_recent_place (sidebar, TRUE, cat_iter);
     }
-
 
     if (!finder_sections) {
         /* file system root */
@@ -1613,6 +1820,59 @@ desktop_setting_changed_callback (gpointer user_data)
 	update_places (sidebar);
 }
 
+static gboolean
+finder_sidebar_draw_selection (GtkWidget *widget,
+                               cairo_t   *cr,
+                               gpointer   user_data)
+{
+    NemoPlacesSidebar *sidebar = NEMO_PLACES_SIDEBAR (user_data);
+    GtkTreeView *tv = GTK_TREE_VIEW (widget);
+    GdkWindow *bin_window = gtk_tree_view_get_bin_window (tv);
+    GtkTreeSelection *selection;
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+    GtkTreePath *path;
+    GdkRectangle rect;
+    gint x, w, h, avail, radius = 6, inset = 8;
+
+    if (!g_settings_get_boolean (nemo_preferences,
+                                 NEMO_PREFERENCES_SIDEBAR_FINDER_SECTIONS))
+        return FALSE;
+
+    if (!gtk_cairo_should_draw_window (cr, bin_window))
+        return FALSE;
+
+    selection = gtk_tree_view_get_selection (tv);
+    if (!gtk_tree_selection_get_selected (selection, &model, &iter))
+        return FALSE;
+
+    path = gtk_tree_model_get_path (model, &iter);
+    gtk_tree_view_get_background_area (tv, path, NULL, &rect);
+    gtk_tree_path_free (path);
+
+    avail = gtk_widget_get_allocated_width (GTK_WIDGET (sidebar));
+    x = inset;
+    w = MIN (gdk_window_get_width (bin_window), avail) - 2 * inset;
+    h = rect.height;
+
+    if (w <= 0 || h <= 0)
+        return FALSE;
+
+    cairo_save (cr);
+    gtk_cairo_transform_to_window (cr, widget, bin_window);
+    cairo_new_sub_path (cr);
+    cairo_arc (cr, x + w - radius, rect.y + radius, radius, -G_PI / 2, 0);
+    cairo_arc (cr, x + w - radius, rect.y + h - radius, radius, 0, G_PI / 2);
+    cairo_arc (cr, x + radius, rect.y + h - radius, radius, G_PI / 2, G_PI);
+    cairo_arc (cr, x + radius, rect.y + radius, radius, G_PI, 3 * G_PI / 2);
+    cairo_close_path (cr);
+    cairo_set_source_rgba (cr, 1.0, 1.0, 1.0, 0.18);
+    cairo_fill (cr);
+    cairo_restore (cr);
+
+    return FALSE;
+}
+
 static void
 update_finder_sidebar_style (NemoPlacesSidebar *sidebar)
 {
@@ -1629,10 +1889,19 @@ update_finder_sidebar_style (NemoPlacesSidebar *sidebar)
         gtk_style_context_add_class (sidebar_context, "nemo-finder-sidebar");
         gtk_style_context_add_class (tree_context, "nemo-finder-sidebar-tree");
         gtk_tree_view_set_show_expanders (sidebar->tree_view, FALSE);
+        gtk_tree_view_column_set_fixed_width (gtk_tree_view_get_column (sidebar->tree_view, 1), 1);
     } else {
         gtk_style_context_remove_class (sidebar_context, "nemo-finder-sidebar");
         gtk_style_context_remove_class (tree_context, "nemo-finder-sidebar-tree");
         gtk_tree_view_set_show_expanders (sidebar->tree_view, TRUE);
+        {
+            gint expander_size;
+
+            gtk_widget_style_get (GTK_WIDGET (sidebar->tree_view),
+                                  "expander-size", &expander_size, NULL);
+            gtk_tree_view_column_set_fixed_width (gtk_tree_view_get_column (sidebar->tree_view, 1),
+                                                  expander_size);
+        }
     }
 }
 
@@ -4203,6 +4472,38 @@ tree_selection_func (GtkTreeSelection *selection,
 	return TRUE;
 }
 
+static gboolean
+finder_sections_enabled (void)
+{
+    return g_settings_get_boolean (nemo_preferences,
+                                   NEMO_PREFERENCES_SIDEBAR_FINDER_SECTIONS);
+}
+
+static void
+initial_padding_cell_renderer_func (GtkTreeViewColumn *column,
+                                    GtkCellRenderer   *cell,
+                                    GtkTreeModel      *model,
+                                    GtkTreeIter       *iter,
+                                    gpointer           user_data)
+{
+    /* En modo Finder los encabezados quedan pegados al borde y los iconos
+     * unos 12 px más adentro. */
+    if (finder_sections_enabled ()) {
+        PlaceType type;
+
+        gtk_tree_model_get (model, iter, PLACES_SIDEBAR_COLUMN_ROW_TYPE, &type, -1);
+        /* Invisible en los encabezados: la columna reparte el mismo ancho a un
+         * renderer visible en todas las filas. */
+        g_object_set (cell,
+                      "visible", type != PLACES_HEADING,
+                      "xpad", 0,
+                      "width", 12,
+                      NULL);
+    } else {
+        g_object_set (cell, "visible", TRUE, "xpad", 2, "width", -1, NULL);
+    }
+}
+
 static void
 icon_cell_renderer_func (GtkTreeViewColumn *column,
 			 GtkCellRenderer *cell,
@@ -4224,7 +4525,10 @@ icon_cell_renderer_func (GtkTreeViewColumn *column,
 		g_object_set (cell,
 			      "visible", TRUE,
                   "xpad", 3,
-                  "ypad", 2,
+                  "ypad", finder_sections_enabled () ? 5 : 2,
+			      NULL);
+		g_object_set (cell,
+			      "stock-size", finder_sections_enabled () ? GTK_ICON_SIZE_MENU : GTK_ICON_SIZE_BUTTON,
 			      NULL);
 	}
 }
@@ -4253,6 +4557,10 @@ padding_cell_renderer_func (GtkTreeViewColumn *column,
 			      "visible", TRUE,
 			      "ypad", 3,
 			      NULL);
+		g_object_set (cell,
+			      "xpad", finder_sections_enabled () ? 0 : 2,
+			      "width", finder_sections_enabled () ? 0 : -1,
+			      NULL);
 	}
 }
 
@@ -4276,7 +4584,8 @@ heading_cell_renderer_func (GtkTreeViewColumn *column,
 			      "visible", TRUE,
 			      "foreground", finder_sections ? "#c3c4bf" : NULL,
 			      "foreground-set", finder_sections,
-			      "ypad", finder_sections ? 7 : 0,
+			      "xpad", finder_sections ? 6 : 0,
+			      "ypad", finder_sections ? 6 : 0,
 			      NULL);
 	} else {
 		g_object_set (cell,
@@ -4373,6 +4682,9 @@ nemo_places_sidebar_init (NemoPlacesSidebar *sidebar)
 	/* initial padding */
 	cell = gtk_cell_renderer_text_new ();
 	gtk_tree_view_column_pack_start (primary_column, cell, FALSE);
+	gtk_tree_view_column_set_cell_data_func (primary_column, cell,
+						 initial_padding_cell_renderer_func,
+						 sidebar, NULL);
 
 	/* headings */
 	cell = gtk_cell_renderer_text_new ();
@@ -4493,6 +4805,7 @@ nemo_places_sidebar_init (NemoPlacesSidebar *sidebar)
     gtk_tree_view_append_column (tree_view, expander_pad_column);
     gtk_tree_view_append_column (tree_view, expander_column);
 	gtk_tree_view_append_column (tree_view, primary_column);
+    g_signal_connect (tree_view, "draw", G_CALLBACK (finder_sidebar_draw_selection), sidebar);
     gtk_tree_view_append_column (tree_view, sidebar->eject_column);
 
     gtk_tree_view_set_expander_column (tree_view, expander_column);
