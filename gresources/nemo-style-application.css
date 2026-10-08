@@ -140,6 +140,7 @@ NemoDesktopWindow GtkPaned {
 nemo-finder-path-bar,
 .nemo-finder-pathbar {
     padding: 3px 10px;
+    border-top: 1px solid #292a28;
     background-color: #3b3c38;
     color: #b9bab5;
     font-size: 11px;

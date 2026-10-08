@@ -284,6 +284,25 @@ nemo_finder_path_bar_set_location (NemoFinderPathBar *bar,
 	gtk_widget_queue_resize (GTK_WIDGET (bar));
 }
 
+/* Padding y borde del nodo CSS: el widget no tiene ventana propia, así que
+ * los aplica él mismo al medir, colocar y dibujar. */
+static void
+get_css_extra (GtkWidget *widget,
+               GtkBorder *extra)
+{
+	GtkStyleContext *context = gtk_widget_get_style_context (widget);
+	GtkStateFlags state = gtk_widget_get_state_flags (widget);
+	GtkBorder padding, border;
+
+	gtk_style_context_get_padding (context, state, &padding);
+	gtk_style_context_get_border (context, state, &border);
+
+	extra->left = padding.left + border.left;
+	extra->right = padding.right + border.right;
+	extra->top = padding.top + border.top;
+	extra->bottom = padding.bottom + border.bottom;
+}
+
 static gint
 natural_width (GtkWidget *widget)
 {
@@ -308,8 +327,13 @@ nemo_finder_path_bar_get_preferred_width (GtkWidget *widget,
 	for (i = 0; i < bar->separators->len; i++)
 		total += natural_width (g_ptr_array_index (bar->separators, i));
 
-	*minimum = MIN (total, MIN_WIDTH);
-	*natural = total;
+	{
+		GtkBorder extra;
+
+		get_css_extra (widget, &extra);
+		*minimum = MIN (total, MIN_WIDTH) + extra.left + extra.right;
+		*natural = total + extra.left + extra.right;
+	}
 }
 
 static void
@@ -329,7 +353,12 @@ nemo_finder_path_bar_get_preferred_height (GtkWidget *widget,
 		height = MAX (height, nat);
 	}
 
-	*minimum = *natural = height;
+	{
+		GtkBorder extra;
+
+		get_css_extra (widget, &extra);
+		*minimum = *natural = height + extra.top + extra.bottom;
+	}
 }
 
 static gint
@@ -362,7 +391,17 @@ nemo_finder_path_bar_size_allocate (GtkWidget *widget,
 	gint total = 0, x;
 	gboolean use_ellipsis = FALSE;
 
+	GtkAllocation inner_alloc;
+	GtkBorder extra;
+
 	gtk_widget_set_allocation (widget, alloc);
+
+	get_css_extra (widget, &extra);
+	inner_alloc.x = alloc->x + extra.left;
+	inner_alloc.y = alloc->y + extra.top;
+	inner_alloc.width = MAX (alloc->width - extra.left - extra.right, 1);
+	inner_alloc.height = MAX (alloc->height - extra.top - extra.bottom, 1);
+	alloc = &inner_alloc;
 
 	/* todo oculto salvo lo que se coloque abajo */
 	for (i = 0; i < n; i++)
@@ -421,6 +460,20 @@ nemo_finder_path_bar_size_allocate (GtkWidget *widget,
 			x = place_child (((Segment *) g_ptr_array_index (bar->segments, i))->widget, alloc, x);
 		}
 	}
+}
+
+static gboolean
+nemo_finder_path_bar_draw (GtkWidget *widget,
+                           cairo_t *cr)
+{
+	GtkStyleContext *context = gtk_widget_get_style_context (widget);
+	gint width = gtk_widget_get_allocated_width (widget);
+	gint height = gtk_widget_get_allocated_height (widget);
+
+	gtk_render_background (context, cr, 0, 0, width, height);
+	gtk_render_frame (context, cr, 0, 0, width, height);
+
+	return GTK_WIDGET_CLASS (nemo_finder_path_bar_parent_class)->draw (widget, cr);
 }
 
 static void
@@ -514,6 +567,7 @@ nemo_finder_path_bar_class_init (NemoFinderPathBarClass *klass)
 	widget_class->get_preferred_width = nemo_finder_path_bar_get_preferred_width;
 	widget_class->get_preferred_height = nemo_finder_path_bar_get_preferred_height;
 	widget_class->size_allocate = nemo_finder_path_bar_size_allocate;
+	widget_class->draw = nemo_finder_path_bar_draw;
 
 	container_class->forall = nemo_finder_path_bar_forall;
 	container_class->remove = nemo_finder_path_bar_remove;
