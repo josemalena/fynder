@@ -38,6 +38,8 @@ GtkWidget* nemo_query_editor_new                (void);
 
 void         nemo_query_editor_set_text           (NemoQueryEditor *editor,
                                                    const gchar     *text);
+void         nemo_query_editor_search             (NemoQueryEditor *editor,
+                                                   const gchar     *text);
 NemoQuery   *nemo_query_editor_get_query          (NemoQueryEditor *editor);
 void         nemo_query_editor_set_query          (NemoQueryEditor *editor,
                                                    NemoQuery       *query);

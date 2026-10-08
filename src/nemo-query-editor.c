@@ -498,6 +498,23 @@ nemo_query_editor_set_text (NemoQueryEditor *editor,
         gtk_entry_set_text (GTK_ENTRY (editor->priv->file_entry), text != NULL ? text : "");
 }
 
+/* Pone el texto y lanza la búsqueda sin esperar a Enter (la validación y la
+ * búsqueda normales del editor siguen aplicando). */
+void
+nemo_query_editor_search (NemoQueryEditor *editor,
+                          const gchar     *text)
+{
+    g_return_if_fail (NEMO_IS_QUERY_EDITOR (editor));
+
+    nemo_query_editor_set_text (editor, text);
+
+    g_clear_handle_id (&editor->priv->typing_timeout_id, g_source_remove);
+    check_entry_text (editor);
+
+    if (gtk_entry_get_icon_activatable (GTK_ENTRY (editor->priv->file_entry), GTK_ENTRY_ICON_SECONDARY))
+        nemo_query_editor_changed_force (editor, TRUE);
+}
+
 NemoQuery *
 nemo_query_editor_get_query (NemoQueryEditor *editor)
 {

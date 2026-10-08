@@ -825,7 +825,7 @@ toolbar_search_text_changed_cb (NemoToolbar *toolbar,
 	if (!active)
 		gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), TRUE);
 
-	nemo_query_editor_set_text (NEMO_QUERY_EDITOR (slot->query_editor), text);
+	nemo_query_editor_search (NEMO_QUERY_EDITOR (slot->query_editor), text);
 
 	/* abrir la búsqueda mueve el foco al editor; devolverlo para seguir escribiendo */
 	nemo_toolbar_focus_search (toolbar);

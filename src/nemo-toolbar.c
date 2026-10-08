@@ -141,6 +141,26 @@ toolbar_create_menu_button (const gchar *icon_name,
     return button;
 }
 
+static void
+menu_deactivated_restore_tooltip_cb (GtkMenuShell *menu,
+                                     GtkWidget *button)
+{
+    gtk_widget_set_has_tooltip (button, TRUE);
+    g_signal_handlers_disconnect_by_func (menu, menu_deactivated_restore_tooltip_cb, button);
+}
+
+/* El tooltip del botón se quedaba encima del primer ítem del menú abierto. */
+static void
+toolbar_popup_menu_at_button (GtkWidget *menu,
+                              GtkWidget *button)
+{
+    gtk_widget_set_has_tooltip (button, FALSE);
+    g_signal_connect (menu, "deactivate",
+                      G_CALLBACK (menu_deactivated_restore_tooltip_cb), button);
+    gtk_menu_popup_at_widget (GTK_MENU (menu), button,
+                              GDK_GRAVITY_SOUTH_WEST, GDK_GRAVITY_NORTH_WEST, NULL);
+}
+
 static GtkWidget *
 toolbar_get_arrange_menu (NemoToolbar *self)
 {
@@ -180,8 +200,7 @@ arrange_button_clicked_cb (GtkButton *button,
     if (menu == NULL)
         return;
 
-    gtk_menu_popup_at_widget (GTK_MENU (menu), GTK_WIDGET (button),
-                              GDK_GRAVITY_SOUTH_WEST, GDK_GRAVITY_NORTH_WEST, NULL);
+    toolbar_popup_menu_at_button (menu, GTK_WIDGET (button));
 }
 
 static GtkAction *
@@ -319,11 +338,18 @@ action_button_clicked_cb (GtkButton *button,
         return;
 
     gtk_widget_show_all (self->priv->action_menu);
-    gtk_menu_popup_at_widget (GTK_MENU (self->priv->action_menu), GTK_WIDGET (button),
-                              GDK_GRAVITY_SOUTH_WEST, GDK_GRAVITY_NORTH_WEST, NULL);
+    toolbar_popup_menu_at_button (self->priv->action_menu, GTK_WIDGET (button));
 }
 
 #define FINDER_SEARCH_WIDTH 220
+
+static void
+search_entry_stop_cb (GtkSearchEntry *entry,
+                      NemoToolbar *self)
+{
+    /* Escape: vaciar el campo cierra la búsqueda (search-changed con texto vacío) */
+    gtk_entry_set_text (GTK_ENTRY (entry), "");
+}
 
 static void
 search_entry_changed_cb (GtkSearchEntry *entry,
@@ -458,6 +484,8 @@ toolbar_update_appearance (NemoToolbar *self)
         gtk_widget_hide (self->priv->home_button);
         gtk_widget_hide (self->priv->computer_button);
         gtk_widget_hide (self->priv->toggle_location_button);
+        /* el campo de búsqueda ya cubre la lupa */
+        gtk_widget_hide (self->priv->search_button);
     } else {
         gtk_style_context_remove_class (gtk_widget_get_style_context (GTK_WIDGET (self)), "nemo-finder-toolbar");
         gtk_style_context_remove_class (gtk_widget_get_style_context (self->priv->toolbar), "nemo-finder-toolbar-inner");
@@ -691,6 +719,8 @@ nemo_toolbar_constructed (GObject *obj)
     gtk_widget_set_valign (self->priv->search_entry, GTK_ALIGN_CENTER);
     g_signal_connect (self->priv->search_entry, "search-changed",
                       G_CALLBACK (search_entry_changed_cb), self);
+    g_signal_connect (self->priv->search_entry, "stop-search",
+                      G_CALLBACK (search_entry_stop_cb), self);
     gtk_container_add (GTK_CONTAINER (tool_box), self->priv->search_entry);
     gtk_container_add (GTK_CONTAINER (self->priv->toolbar), GTK_WIDGET (tool_box));
     gtk_widget_show_all (GTK_WIDGET (tool_box));
