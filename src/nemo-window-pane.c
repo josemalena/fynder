@@ -835,8 +835,18 @@ static void
 search_action_toggled_cb (GtkToggleAction *action,
 			  NemoWindowPane *pane)
 {
-	if (!gtk_toggle_action_get_active (action))
+	/* Mientras se escribe en el campo, un cierre espurio de la búsqueda (p. ej. al
+	 * cambiar de ubicación) no debe borrar lo escrito. */
+	if (!gtk_toggle_action_get_active (action) &&
+	    !nemo_toolbar_search_has_focus (NEMO_TOOLBAR (pane->tool_bar)))
 		nemo_toolbar_clear_search (NEMO_TOOLBAR (pane->tool_bar));
+}
+
+static void
+toolbar_search_escaped_cb (NemoToolbar *toolbar,
+			   NemoWindowPane *pane)
+{
+	nemo_window_pane_grab_focus (pane);
 }
 
 static void
@@ -852,6 +862,8 @@ setup_search_action (NemoWindowPane *pane)
 			  G_CALLBACK (search_action_toggled_cb), pane);
 	g_signal_connect (pane->tool_bar, "search-text-changed",
 			  G_CALLBACK (toolbar_search_text_changed_cb), pane);
+	g_signal_connect (pane->tool_bar, "search-escaped",
+			  G_CALLBACK (toolbar_search_escaped_cb), pane);
 }
 
 static void

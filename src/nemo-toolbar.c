@@ -95,6 +95,7 @@ static GParamSpec *properties[NUM_PROPERTIES] = { NULL, };
 enum {
     CHECK_ADMIN_LOCATION,
     SEARCH_TEXT_CHANGED,
+    SEARCH_ESCAPED,
     LAST_SIGNAL
 };
 
@@ -346,23 +347,22 @@ action_button_clicked_cb (GtkButton *button,
 
 /* Recuperar el foco (p. ej. al refrescarse los resultados) no debe dejar el
  * texto seleccionado: lo siguiente que teclees lo reemplazaría. */
-static gboolean
-search_entry_focus_in_cb (GtkWidget *entry,
-                          GdkEvent *event,
-                          NemoToolbar *self)
+static void
+search_entry_grab_focus_cb (GtkWidget *entry,
+                            NemoToolbar *self)
 {
     if (!self->priv->select_on_focus)
         gtk_editable_set_position (GTK_EDITABLE (entry), -1);
-
-    return FALSE;
 }
 
 static void
 search_entry_stop_cb (GtkSearchEntry *entry,
                       NemoToolbar *self)
 {
-    /* Escape: vaciar el campo cierra la búsqueda (search-changed con texto vacío) */
+    /* Escape: vaciar el campo cierra la búsqueda (search-changed con texto vacío)
+     * y el foco vuelve a la vista, aunque el campo ya estuviera vacío. */
     gtk_entry_set_text (GTK_ENTRY (entry), "");
+    g_signal_emit (self, signals[SEARCH_ESCAPED], 0);
 }
 
 static void
@@ -735,8 +735,8 @@ nemo_toolbar_constructed (GObject *obj)
                       G_CALLBACK (search_entry_changed_cb), self);
     g_signal_connect (self->priv->search_entry, "stop-search",
                       G_CALLBACK (search_entry_stop_cb), self);
-    g_signal_connect_after (self->priv->search_entry, "focus-in-event",
-                            G_CALLBACK (search_entry_focus_in_cb), self);
+    g_signal_connect_after (self->priv->search_entry, "grab-focus",
+                            G_CALLBACK (search_entry_grab_focus_cb), self);
     gtk_container_add (GTK_CONTAINER (tool_box), self->priv->search_entry);
     gtk_container_add (GTK_CONTAINER (self->priv->toolbar), GTK_WIDGET (tool_box));
     gtk_widget_show_all (GTK_WIDGET (tool_box));
@@ -863,6 +863,13 @@ nemo_toolbar_class_init (NemoToolbarClass *klass)
                       0, NULL, NULL, NULL,
                       G_TYPE_BOOLEAN, 0);
 
+    signals[SEARCH_ESCAPED] =
+        g_signal_new ("search-escaped",
+                      G_TYPE_FROM_CLASS (klass),
+                      G_SIGNAL_RUN_LAST,
+                      0, NULL, NULL, NULL,
+                      G_TYPE_NONE, 0);
+
     signals[SEARCH_TEXT_CHANGED] =
         g_signal_new ("search-text-changed",
                       G_TYPE_FROM_CLASS (klass),
@@ -919,6 +926,15 @@ nemo_toolbar_clear_search (NemoToolbar *self)
     self->priv->updating_search = TRUE;
     gtk_entry_set_text (GTK_ENTRY (self->priv->search_entry), "");
     self->priv->updating_search = FALSE;
+}
+
+gboolean
+nemo_toolbar_search_has_focus (NemoToolbar *self)
+{
+    g_return_val_if_fail (NEMO_IS_TOOLBAR (self), FALSE);
+
+    return self->priv->search_entry != NULL &&
+           gtk_widget_has_focus (self->priv->search_entry);
 }
 
 /* Cmd+F: enfoca el campo de búsqueda y selecciona su texto. FALSE si no está

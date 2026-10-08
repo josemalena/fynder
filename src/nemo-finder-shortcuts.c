@@ -26,6 +26,7 @@ typedef struct {
 	guint keyval;
 	GdkModifierType mods;
 	const gchar *action;
+	gboolean window_level; /* también válido escribiendo en un campo de texto */
 } FinderShortcut;
 
 #define CMD   GDK_SUPER_MASK
@@ -33,46 +34,45 @@ typedef struct {
 
 static const FinderShortcut shortcuts[] = {
 	/* Cmd+Delete / Cmd+Backspace: a la papelera; con Shift, vaciarla */
-	{ GDK_KEY_BackSpace,    CMD,         NEMO_ACTION_TRASH },
-	{ GDK_KEY_Delete,       CMD,         NEMO_ACTION_TRASH },
-	{ GDK_KEY_BackSpace,    CMD | SHIFT, NEMO_ACTION_EMPTY_TRASH },
-	{ GDK_KEY_Delete,       CMD | SHIFT, NEMO_ACTION_EMPTY_TRASH },
+	{ GDK_KEY_BackSpace,    CMD,         NEMO_ACTION_TRASH, FALSE },
+	{ GDK_KEY_Delete,       CMD,         NEMO_ACTION_TRASH, FALSE },
+	{ GDK_KEY_BackSpace,    CMD | SHIFT, NEMO_ACTION_EMPTY_TRASH, FALSE },
+	{ GDK_KEY_Delete,       CMD | SHIFT, NEMO_ACTION_EMPTY_TRASH, FALSE },
 
 	/* Abrir, propiedades (Get Info), carpeta nueva */
-	{ GDK_KEY_o,            CMD,         NEMO_ACTION_OPEN },
-	{ GDK_KEY_Down,         CMD,         NEMO_ACTION_OPEN },
-	{ GDK_KEY_i,            CMD,         NEMO_ACTION_PROPERTIES },
-	{ GDK_KEY_n,            CMD | SHIFT, NEMO_ACTION_NEW_FOLDER },
+	{ GDK_KEY_o,            CMD,         NEMO_ACTION_OPEN, FALSE },
+	{ GDK_KEY_Down,         CMD,         NEMO_ACTION_OPEN, FALSE },
+	{ GDK_KEY_i,            CMD,         NEMO_ACTION_PROPERTIES, FALSE },
+	{ GDK_KEY_n,            CMD | SHIFT, NEMO_ACTION_NEW_FOLDER, FALSE },
 
 	/* Ventanas y pestañas */
-	{ GDK_KEY_n,            CMD,         "New Window" },
-	{ GDK_KEY_t,            CMD,         NEMO_ACTION_NEW_TAB },
-	{ GDK_KEY_w,            CMD,         NEMO_ACTION_CLOSE },
+	{ GDK_KEY_n,            CMD,         "New Window", TRUE },
+	{ GDK_KEY_t,            CMD,         NEMO_ACTION_NEW_TAB, TRUE },
+	{ GDK_KEY_w,            CMD,         NEMO_ACTION_CLOSE, TRUE },
 
 	/* Navegación */
-	{ GDK_KEY_bracketleft,  CMD,         NEMO_ACTION_BACK },
-	{ GDK_KEY_bracketright, CMD,         NEMO_ACTION_FORWARD },
-	{ GDK_KEY_Up,           CMD,         NEMO_ACTION_UP },
-	{ GDK_KEY_h,            CMD | SHIFT, NEMO_ACTION_HOME },
+	{ GDK_KEY_bracketleft,  CMD,         NEMO_ACTION_BACK, TRUE },
+	{ GDK_KEY_bracketright, CMD,         NEMO_ACTION_FORWARD, TRUE },
+	{ GDK_KEY_h,            CMD | SHIFT, NEMO_ACTION_HOME, TRUE },
 
 	/* Vistas: iconos, lista, columnas (la compacta) */
-	{ GDK_KEY_1,            CMD,         NEMO_ACTION_ICON_VIEW },
-	{ GDK_KEY_2,            CMD,         NEMO_ACTION_LIST_VIEW },
-	{ GDK_KEY_3,            CMD,         NEMO_ACTION_COMPACT_VIEW },
+	{ GDK_KEY_1,            CMD,         NEMO_ACTION_ICON_VIEW, TRUE },
+	{ GDK_KEY_2,            CMD,         NEMO_ACTION_LIST_VIEW, TRUE },
+	{ GDK_KEY_3,            CMD,         NEMO_ACTION_COMPACT_VIEW, TRUE },
 
 	/* Edición */
-	{ GDK_KEY_d,            CMD,         NEMO_ACTION_DUPLICATE },
-	{ GDK_KEY_c,            CMD,         NEMO_ACTION_COPY },
-	{ GDK_KEY_x,            CMD,         NEMO_ACTION_CUT },
-	{ GDK_KEY_v,            CMD,         NEMO_ACTION_PASTE },
-	{ GDK_KEY_a,            CMD,         NEMO_ACTION_SELECT_ALL },
+	{ GDK_KEY_d,            CMD,         NEMO_ACTION_DUPLICATE, FALSE },
+	{ GDK_KEY_c,            CMD,         NEMO_ACTION_COPY, FALSE },
+	{ GDK_KEY_x,            CMD,         NEMO_ACTION_CUT, FALSE },
+	{ GDK_KEY_v,            CMD,         NEMO_ACTION_PASTE, FALSE },
+	{ GDK_KEY_a,            CMD,         NEMO_ACTION_SELECT_ALL, FALSE },
 
 	/* Archivos ocultos (Cmd+Shift+. ; con teclado es sale como «:») */
-	{ GDK_KEY_period,       CMD | SHIFT, NEMO_ACTION_SHOW_HIDDEN_FILES },
-	{ GDK_KEY_colon,        CMD | SHIFT, NEMO_ACTION_SHOW_HIDDEN_FILES },
+	{ GDK_KEY_period,       CMD | SHIFT, NEMO_ACTION_SHOW_HIDDEN_FILES, FALSE },
+	{ GDK_KEY_colon,        CMD | SHIFT, NEMO_ACTION_SHOW_HIDDEN_FILES, FALSE },
 
 	/* Preferencias */
-	{ GDK_KEY_comma,        CMD,         "Preferences" },
+	{ GDK_KEY_comma,        CMD,         "Preferences", TRUE },
 };
 
 static GtkAction *
@@ -143,39 +143,14 @@ focus_is_in_view (NemoWindow *window,
 	       (focus == GTK_WIDGET (view) || gtk_widget_is_ancestor (focus, GTK_WIDGET (view)));
 }
 
-gboolean
-nemo_finder_shortcuts_handle (NemoWindow *window,
-                              GdkEventKey *event)
+/* Atajos de ventana (no dependen de la selección ni del foco en la vista).
+ * Se usan también cuando el foco está en un campo de texto. */
+static gboolean
+nemo_finder_shortcuts_window_level (NemoWindow *window,
+                                    GdkModifierType mods,
+                                    guint keyval)
 {
-	NemoWindowSlot *slot;
-	NemoView *view;
-	GtkWidget *focus;
-	GdkModifierType mods;
-	guint keyval;
 	gsize i;
-
-	if (!g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_SHORTCUTS_FINDER_STYLE))
-		return FALSE;
-
-	/* Nada de atajos mientras se escribe en un campo de texto */
-	focus = gtk_window_get_focus (GTK_WINDOW (window));
-	if (focus != NULL && (GTK_IS_EDITABLE (focus) || GTK_IS_TEXT_VIEW (focus)))
-		return FALSE;
-
-	slot = nemo_window_get_active_slot (window);
-	view = (slot != NULL) ? slot->content_view : NULL;
-
-	mods = event->state & gtk_accelerator_get_default_mod_mask ();
-	keyval = gdk_keyval_to_lower (event->keyval);
-
-	/* Return renombra, pero solo con el foco en la vista de archivos: en el
-	 * resto de la ventana (lateral, barra de ubicación) conserva su función. */
-	if (mods == 0 &&
-	    (event->keyval == GDK_KEY_Return || event->keyval == GDK_KEY_KP_Enter)) {
-		if (focus_is_in_view (window, view))
-			return activate_action (window, NEMO_ACTION_RENAME);
-		return FALSE;
-	}
 
 	/* Cmd+F: ir al campo de búsqueda */
 	if (mods == CMD && keyval == GDK_KEY_f) {
@@ -206,6 +181,87 @@ nemo_finder_shortcuts_handle (NemoWindow *window,
 		go_to_folder (window, G_USER_DIRECTORY_DOWNLOAD, "Downloads");
 		return TRUE;
 	}
+
+	for (i = 0; i < G_N_ELEMENTS (shortcuts); i++) {
+		if (shortcuts[i].window_level &&
+		    shortcuts[i].keyval == keyval && shortcuts[i].mods == mods)
+			return activate_action (window, shortcuts[i].action);
+	}
+
+	return FALSE;
+}
+
+gboolean
+nemo_finder_shortcuts_handle (NemoWindow *window,
+                              GdkEventKey *event)
+{
+	NemoWindowSlot *slot;
+	NemoView *view;
+	GtkWidget *focus;
+	GdkModifierType mods;
+	guint keyval;
+	gsize i;
+
+	if (!g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_SHORTCUTS_FINDER_STYLE))
+		return FALSE;
+
+	focus = gtk_window_get_focus (GTK_WINDOW (window));
+	mods = event->state & gtk_accelerator_get_default_mod_mask ();
+	keyval = gdk_keyval_to_lower (event->keyval);
+
+	/* Escribiendo en un campo de texto: sin Super no se toca nada. Con Super,
+	 * GtkEntry insertaría la letra (Super no está en su filtro), así que se
+	 * atienden solo los atajos de ventana y el portapapeles, y el resto se
+	 * descarta. */
+	if (focus != NULL && (GTK_IS_EDITABLE (focus) || GTK_IS_TEXT_VIEW (focus))) {
+		if (!(mods & CMD))
+			return FALSE;
+
+		if (mods == CMD && GTK_IS_EDITABLE (focus)) {
+			const gchar *signal_name = NULL;
+
+			if (keyval == GDK_KEY_c)
+				signal_name = "copy-clipboard";
+			else if (keyval == GDK_KEY_x)
+				signal_name = "cut-clipboard";
+			else if (keyval == GDK_KEY_v)
+				signal_name = "paste-clipboard";
+			else if (keyval == GDK_KEY_a)
+				signal_name = "select-all";
+
+			if (signal_name != NULL) {
+				if (g_strcmp0 (signal_name, "select-all") == 0)
+					gtk_editable_select_region (GTK_EDITABLE (focus), 0, -1);
+				else
+					g_signal_emit_by_name (focus, signal_name);
+				return TRUE;
+			}
+		}
+
+		/* Delete y Backspace con Cmd los dejamos al campo */
+		if (keyval == GDK_KEY_BackSpace || keyval == GDK_KEY_Delete)
+			return FALSE;
+
+		if (!nemo_finder_shortcuts_window_level (window, mods, keyval))
+			return gdk_keyval_to_unicode (event->keyval) != 0;
+
+		return TRUE;
+	}
+
+	slot = nemo_window_get_active_slot (window);
+	view = (slot != NULL) ? slot->content_view : NULL;
+
+	/* Return renombra, pero solo con el foco en la vista de archivos: en el
+	 * resto de la ventana (lateral, barra de ubicación) conserva su función. */
+	if (mods == 0 &&
+	    (event->keyval == GDK_KEY_Return || event->keyval == GDK_KEY_KP_Enter)) {
+		if (focus_is_in_view (window, view))
+			return activate_action (window, NEMO_ACTION_RENAME);
+		return FALSE;
+	}
+
+	if (nemo_finder_shortcuts_window_level (window, mods, keyval))
+		return TRUE;
 
 	for (i = 0; i < G_N_ELEMENTS (shortcuts); i++) {
 		if (shortcuts[i].keyval == keyval && shortcuts[i].mods == mods)
