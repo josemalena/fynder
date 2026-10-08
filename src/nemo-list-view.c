@@ -2236,6 +2236,38 @@ apply_columns_settings (NemoListView *list_view,
     g_list_free (view_columns);
 }
 
+/* Archivos ocultos atenuados (como en el Finder): se pinta la celda con el
+ * estado «insensitive» del tema. */
+static void
+set_hidden_dim (GtkCellRenderer *renderer,
+                GtkTreeModel    *model,
+                GtkTreeIter     *iter)
+{
+	gboolean dim = FALSE;
+
+	if (g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_FINDER_DIM_HIDDEN_FILES)) {
+		NemoFile *file = NULL;
+
+		gtk_tree_model_get (model, iter, NEMO_LIST_MODEL_FILE_COLUMN, &file, -1);
+		if (file != NULL) {
+			dim = nemo_file_is_hidden_file (file);
+			nemo_file_unref (file);
+		}
+	}
+
+	g_object_set (renderer, "sensitive", !dim, NULL);
+}
+
+static void
+hidden_dim_cell_data_func (GtkTreeViewColumn *column,
+                           GtkCellRenderer   *renderer,
+                           GtkTreeModel      *model,
+                           GtkTreeIter       *iter,
+                           gpointer           user_data)
+{
+	set_hidden_dim (renderer, model, iter);
+}
+
 static void
 filename_cell_data_func (GtkTreeViewColumn *column,
 			 GtkCellRenderer   *renderer,
@@ -2252,6 +2284,8 @@ filename_cell_data_func (GtkTreeViewColumn *column,
 			    view->details->file_name_column_num, &text,
                 NEMO_LIST_MODEL_TEXT_WEIGHT_COLUMN, &weight,
 			    -1);
+
+	set_hidden_dim (renderer, model, iter);
 
 	if (click_policy == NEMO_CLICK_POLICY_SINGLE) {
 		path = gtk_tree_model_get_path (model, iter);
@@ -2744,6 +2778,8 @@ create_and_set_up_tree_view (NemoListView *view)
 							     cell,
 							     "surface", NEMO_LIST_MODEL_SMALLEST_ICON_COLUMN,
 							     NULL);
+			gtk_tree_view_column_set_cell_data_func (view->details->file_name_column, cell,
+								 hidden_dim_cell_data_func, NULL, NULL);
 
 			cell = gtk_cell_renderer_text_new ();
 			view->details->file_name_cell = (GtkCellRendererText *)cell;
@@ -2791,6 +2827,8 @@ create_and_set_up_tree_view (NemoListView *view)
                                                  "text", column_num,
                                                  "weight", NEMO_LIST_MODEL_TEXT_WEIGHT_COLUMN,
                                                  NULL);
+            gtk_tree_view_column_set_cell_data_func (column, cell,
+                                                     hidden_dim_cell_data_func, NULL, NULL);
 
             gtk_tree_view_append_column (view->details->tree_view, column);
             gtk_tree_view_column_set_min_width (column, 30);

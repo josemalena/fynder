@@ -30,6 +30,7 @@
 
 #include "nemo-file-utilities.h"
 #include "nemo-global-preferences.h"
+#include "nemo-file.h"
 #include "nemo-icon-private.h"
 #include "nemo-fzy-utils.h"
 #include <eel/eel-art-extensions.h>
@@ -1364,6 +1365,7 @@ nemo_icon_canvas_item_draw (EelCanvasItem *item,
 	EelIRect icon_rect;
     cairo_surface_t *temp_surface;
 	GtkStyleContext *context;
+	gboolean dim_hidden;
 
 	container = NEMO_ICON_CONTAINER (item->canvas);
 	icon_item = NEMO_ICON_CANVAS_ITEM (item);
@@ -1379,6 +1381,19 @@ nemo_icon_canvas_item_draw (EelCanvasItem *item,
 
 	gtk_style_context_add_class (context, "nemo-canvas-item");
 
+	/* Archivos ocultos atenuados (icono y nombre), como en el Finder */
+	dim_hidden = FALSE;
+	if (icon_item->user_data != NULL &&
+	    g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_FINDER_DIM_HIDDEN_FILES)) {
+		NemoIcon *icon = icon_item->user_data;
+
+		dim_hidden = NEMO_IS_FILE (icon->data) &&
+		             nemo_file_is_hidden_file (NEMO_FILE (icon->data));
+	}
+	if (dim_hidden) {
+		cairo_push_group (cr);
+	}
+
 	icon_rect = icon_item->details->canvas_rect;
 	temp_surface = map_surface (icon_item);
 
@@ -1392,6 +1407,11 @@ nemo_icon_canvas_item_draw (EelCanvasItem *item,
 
 	/* Draw the label text. */
 	draw_label_text (icon_item, cr, icon_rect);
+
+	if (dim_hidden) {
+		cairo_pop_group_to_source (cr);
+		cairo_paint_with_alpha (cr, 0.5);
+	}
 
 	gtk_style_context_restore (context);
 }

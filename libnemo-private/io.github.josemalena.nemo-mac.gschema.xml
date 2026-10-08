@@ -347,6 +347,11 @@
       <summary>Show Path in the Finder toolbar</summary>
       <description>Show the Path button (edit location) in the Finder-style toolbar.</description>
     </key>
+    <key name="finder-dim-hidden-files" type="b">
+      <default>true</default>
+      <summary>Dim hidden files</summary>
+      <description>When hidden files are shown, draw them dimmed (icon and name), as the Finder does.</description>
+    </key>
     <key name="finder-show-path-bar" type="b">
       <default>false</default>
       <summary>Show the Finder-style path bar</summary>
