@@ -52,8 +52,8 @@ NemoDesktopWindow GtkPaned {
 
 .nemo-finder-sidebar-tree.view:selected,
 .nemo-finder-sidebar-tree.view:selected:focus {
-    background-color: #5a5b56;
-    color: #ffffff;
+    background-color: #373834;
+    color: #f0f0ed;
 }
 
 .nemo-finder-sidebar-tree.view:hover {
@@ -90,6 +90,24 @@ NemoDesktopWindow GtkPaned {
 .nemo-finder-toolbar button:checked {
     background-color: #7a7b76;
     color: #ffffff;
+}
+
+.nemo-finder-toolbar .linked > button {
+    margin-left: 0;
+    margin-right: 0;
+    border-radius: 0;
+}
+
+.nemo-finder-toolbar .linked > button:first-child {
+    margin-left: 2px;
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+}
+
+.nemo-finder-toolbar .linked > button:last-child {
+    margin-right: 2px;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
 }
 
 /* EelEditableLabel (icon labels) */
