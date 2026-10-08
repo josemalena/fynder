@@ -227,6 +227,7 @@ static void  check_unmount_and_eject                   (GMount *mount,
 
 static void update_places                              (NemoPlacesSidebar *sidebar);
 static void update_places_on_idle                      (NemoPlacesSidebar *sidebar);
+static void update_finder_sidebar_style                (NemoPlacesSidebar *sidebar);
 static void rebuild_menu                               (NemoPlacesSidebar *sidebar);
 static void actions_changed                            (gpointer user_data);
 /* Identifiers for target types */
@@ -1505,7 +1506,29 @@ desktop_setting_changed_callback (gpointer user_data)
 
 	sidebar = NEMO_PLACES_SIDEBAR (user_data);
 
+	update_finder_sidebar_style (sidebar);
 	update_places (sidebar);
+}
+
+static void
+update_finder_sidebar_style (NemoPlacesSidebar *sidebar)
+{
+    gboolean finder_sections;
+    GtkStyleContext *sidebar_context;
+    GtkStyleContext *tree_context;
+
+    finder_sections = g_settings_get_boolean (nemo_preferences,
+                                                NEMO_PREFERENCES_SIDEBAR_FINDER_SECTIONS);
+    sidebar_context = gtk_widget_get_style_context (GTK_WIDGET (sidebar));
+    tree_context = gtk_widget_get_style_context (GTK_WIDGET (sidebar->tree_view));
+
+    if (finder_sections) {
+        gtk_style_context_add_class (sidebar_context, "nemo-finder-sidebar");
+        gtk_style_context_add_class (tree_context, "nemo-finder-sidebar-tree");
+    } else {
+        gtk_style_context_remove_class (sidebar_context, "nemo-finder-sidebar");
+        gtk_style_context_remove_class (tree_context, "nemo-finder-sidebar-tree");
+    }
 }
 
 static void
@@ -4142,8 +4165,13 @@ heading_cell_renderer_func (GtkTreeViewColumn *column,
 			    -1);
 
 	if (type == PLACES_HEADING) {
+		gboolean finder_sections = g_settings_get_boolean (nemo_preferences,
+		                                                    NEMO_PREFERENCES_SIDEBAR_FINDER_SECTIONS);
 		g_object_set (cell,
 			      "visible", TRUE,
+			      "foreground", finder_sections ? "#c3c4bf" : NULL,
+			      "foreground-set", finder_sections,
+			      "ypad", finder_sections ? 7 : 0,
 			      NULL);
 	} else {
 		g_object_set (cell,
@@ -4382,6 +4410,7 @@ nemo_places_sidebar_init (NemoPlacesSidebar *sidebar)
 
 	gtk_widget_show (GTK_WIDGET (sidebar));
 	sidebar->tree_view = tree_view;
+	update_finder_sidebar_style (sidebar);
 
     /* On by default, and its search window positions itself with absolute root
      * coordinates - which a Wayland client cannot know, so it lands on the
@@ -4452,6 +4481,14 @@ nemo_places_sidebar_init (NemoPlacesSidebar *sidebar)
     g_signal_connect_swapped (cinnamon_privacy_preferences, "changed::" NEMO_PREFERENCES_RECENT_ENABLED,
                   G_CALLBACK(desktop_setting_changed_callback),
                   sidebar);
+
+	g_signal_connect_swapped (nemo_preferences,
+				  "changed::" NEMO_PREFERENCES_SIDEBAR_FINDER_SECTIONS,
+				  G_CALLBACK(desktop_setting_changed_callback), sidebar);
+
+	g_signal_connect_swapped (nemo_preferences,
+				  "changed::" NEMO_PREFERENCES_SIDEBAR_ICLOUD_PATH,
+				  G_CALLBACK(desktop_setting_changed_callback), sidebar);
 
 	g_signal_connect_object (nemo_trash_monitor_get (),
 				 "trash_state_changed",

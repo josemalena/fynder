@@ -41,6 +41,31 @@ NemoDesktopWindow GtkPaned {
     color: #f5f5f5;
 }
 
+/* Finder sidebar: enabled only by sidebar-finder-sections. */
+.nemo-finder-sidebar,
+.nemo-finder-sidebar > viewport,
+.nemo-finder-sidebar-tree,
+.nemo-finder-sidebar-tree.view {
+    background-color: #373834;
+    color: #f0f0ed;
+}
+
+.nemo-finder-sidebar-tree.view:selected,
+.nemo-finder-sidebar-tree.view:selected:focus {
+    background-color: #5a5b56;
+    color: #ffffff;
+}
+
+.nemo-finder-sidebar-tree.view:hover {
+    background-color: #464742;
+    color: #ffffff;
+}
+
+.nemo-finder-sidebar scrollbar,
+.nemo-finder-sidebar scrollbar slider {
+    background-color: #373834;
+}
+
 /* EelEditableLabel (icon labels) */
 .nemo-desktop.view .entry,
 .nemo-desktop.view .entry:active,
