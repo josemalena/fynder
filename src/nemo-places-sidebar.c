@@ -506,7 +506,10 @@ get_finder_sidebar_icon_name (const char *uri,
     } else if (mount != NULL) {
         root = g_mount_get_root (mount);
         if (!g_file_is_native (root)) {
-            icon_name = "folder-remote-symbolic";
+            icon_name = gtk_icon_theme_has_icon (gtk_icon_theme_get_default (),
+                                                 "network-server-symbolic")
+                        ? "network-server-symbolic"
+                        : "folder-remote-symbolic";
         }
         g_object_unref (root);
     }
@@ -4364,7 +4367,7 @@ nemo_places_sidebar_init (NemoPlacesSidebar *sidebar)
 	gtk_tree_view_set_headers_visible (tree_view, FALSE);
 
     primary_column = GTK_TREE_VIEW_COLUMN (gtk_tree_view_column_new ());
-    gtk_tree_view_column_set_max_width (GTK_TREE_VIEW_COLUMN (primary_column), NEMO_ICON_SIZE_SMALLER);
+    gtk_tree_view_column_set_max_width (GTK_TREE_VIEW_COLUMN (primary_column), -1);
     gtk_tree_view_column_set_expand (primary_column, TRUE);
 
 	/* initial padding */
