@@ -464,6 +464,23 @@ toolbar_update_appearance (NemoToolbar *self)
         gtk_style_context_remove_class (gtk_widget_get_style_context (self->priv->navigation_box), "linked");
     }
 
+    /* En el layout Finder la vista compacta lleva el glifo de columnas del Finder. */
+    {
+        GtkButton *compact = GTK_BUTTON (self->priv->compact_view_button);
+        GtkActivatable *activatable = GTK_ACTIVATABLE (compact);
+
+        gtk_activatable_set_use_action_appearance (activatable, !finder_layout);
+        if (finder_layout) {
+            gtk_button_set_image (compact,
+                                  gtk_image_new_from_icon_name ("view-column-symbolic",
+                                                                GTK_ICON_SIZE_SMALL_TOOLBAR));
+            gtk_button_set_always_show_image (compact, TRUE);
+        } else {
+            gtk_activatable_sync_action_properties (activatable,
+                                                    gtk_activatable_get_related_action (activatable));
+        }
+    }
+
     toolbar_update_arrange_button (self);
     gtk_widget_set_visible (self->priv->action_button, finder_layout);
     gtk_widget_set_visible (self->priv->search_item, finder_layout);
