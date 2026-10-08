@@ -62,6 +62,10 @@ struct _NemoToolbarPriv {
     GtkWidget *arrange_button;
     GtkWidget *action_button;
     GtkWidget *action_menu;
+    GtkWidget *get_info_button;
+    GtkWidget *delete_button;
+    GtkWidget *sidebar_button;
+    GtkWidget *path_button;
     GtkWidget *search_item;
     GtkWidget *search_entry;
     gboolean updating_search;
@@ -186,18 +190,74 @@ toolbar_find_action (NemoToolbar *self,
 {
     GList *groups, *l;
 
-    if (self->priv->window_ui_manager == NULL)
-        return NULL;
+    if (self->priv->window_ui_manager != NULL) {
+        groups = gtk_ui_manager_get_action_groups (self->priv->window_ui_manager);
+        for (l = groups; l != NULL; l = l->next) {
+            GtkAction *action = gtk_action_group_get_action (GTK_ACTION_GROUP (l->data), name);
 
-    groups = gtk_ui_manager_get_action_groups (self->priv->window_ui_manager);
-    for (l = groups; l != NULL; l = l->next) {
-        GtkAction *action = gtk_action_group_get_action (GTK_ACTION_GROUP (l->data), name);
-
-        if (action != NULL)
-            return action;
+            if (action != NULL)
+                return action;
+        }
     }
 
-    return NULL;
+    return gtk_action_group_get_action (self->priv->action_group, name);
+}
+
+/* Botones opcionales del layout Finder. Sus acciones viven en el grupo de la
+ * vista activa, que cambia al cambiar de vista: se vuelven a enlazar cada vez. */
+static GtkWidget *
+toolbar_create_finder_button (const gchar *icon_name,
+                              const gchar *tooltip,
+                              gboolean toggle)
+{
+    GtkWidget *button = toggle ? gtk_toggle_button_new () : gtk_button_new ();
+    GtkWidget *image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_SMALL_TOOLBAR);
+
+    gtk_button_set_image (GTK_BUTTON (button), image);
+    gtk_button_set_always_show_image (GTK_BUTTON (button), TRUE);
+    gtk_activatable_set_use_action_appearance (GTK_ACTIVATABLE (button), FALSE);
+    gtk_widget_set_tooltip_text (button, tooltip);
+    gtk_widget_set_can_focus (button, FALSE);
+    gtk_style_context_add_class (gtk_widget_get_style_context (button), GTK_STYLE_CLASS_FLAT);
+    gtk_widget_show_all (button);
+
+    return button;
+}
+
+static void
+toolbar_bind_finder_button (NemoToolbar *self,
+                            GtkWidget *button,
+                            const gchar *action_name,
+                            const gchar *pref_key,
+                            gboolean finder_layout)
+{
+    GtkAction *action = toolbar_find_action (self, action_name);
+
+    if (gtk_activatable_get_related_action (GTK_ACTIVATABLE (button)) != action)
+        gtk_activatable_set_related_action (GTK_ACTIVATABLE (button), action);
+
+    gtk_widget_set_visible (button,
+                            finder_layout && action != NULL &&
+                            g_settings_get_boolean (nemo_preferences, pref_key));
+}
+
+static void
+toolbar_update_finder_buttons (NemoToolbar *self)
+{
+    gboolean finder_layout = g_settings_get_boolean (nemo_preferences,
+                                                     NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT);
+
+    if (self->priv->get_info_button == NULL)
+        return;
+
+    toolbar_bind_finder_button (self, self->priv->get_info_button, NEMO_ACTION_PROPERTIES,
+                                NEMO_PREFERENCES_TOOLBAR_FINDER_SHOW_GET_INFO, finder_layout);
+    toolbar_bind_finder_button (self, self->priv->delete_button, NEMO_ACTION_TRASH,
+                                NEMO_PREFERENCES_TOOLBAR_FINDER_SHOW_DELETE, finder_layout);
+    toolbar_bind_finder_button (self, self->priv->sidebar_button, NEMO_ACTION_SHOW_HIDE_SIDEBAR,
+                                NEMO_PREFERENCES_TOOLBAR_FINDER_SHOW_SIDEBAR, finder_layout);
+    toolbar_bind_finder_button (self, self->priv->path_button, NEMO_ACTION_TOGGLE_LOCATION,
+                                NEMO_PREFERENCES_TOOLBAR_FINDER_SHOW_PATH, finder_layout);
 }
 
 /* Acciones del elemento seleccionado, en el orden del Action ▾ del Finder.
@@ -407,6 +467,7 @@ toolbar_update_appearance (NemoToolbar *self)
     toolbar_update_arrange_button (self);
     gtk_widget_set_visible (self->priv->action_button, finder_layout);
     gtk_widget_set_visible (self->priv->search_item, finder_layout);
+    toolbar_update_finder_buttons (self);
 }
 
 static void
@@ -581,6 +642,22 @@ nemo_toolbar_constructed (GObject *obj)
     g_signal_connect (self->priv->action_button, "clicked",
                       G_CALLBACK (action_button_clicked_cb), self);
     gtk_container_add (GTK_CONTAINER (box), self->priv->action_button);
+
+    self->priv->get_info_button = toolbar_create_finder_button ("document-properties-symbolic",
+                                                                _("Get Info"), FALSE);
+    gtk_container_add (GTK_CONTAINER (box), self->priv->get_info_button);
+
+    self->priv->delete_button = toolbar_create_finder_button ("user-trash-symbolic",
+                                                              _("Move to Trash"), FALSE);
+    gtk_container_add (GTK_CONTAINER (box), self->priv->delete_button);
+
+    self->priv->sidebar_button = toolbar_create_finder_button ("view-sidebar-symbolic",
+                                                               _("Show or hide the sidebar"), TRUE);
+    gtk_container_add (GTK_CONTAINER (box), self->priv->sidebar_button);
+
+    self->priv->path_button = toolbar_create_finder_button ("view-path-symbolic",
+                                                            _("Edit the location"), TRUE);
+    gtk_container_add (GTK_CONTAINER (box), self->priv->path_button);
 
     gtk_container_add (GTK_CONTAINER (tool_box), GTK_WIDGET (box));
     gtk_container_add (GTK_CONTAINER (self->priv->toolbar), GTK_WIDGET (tool_box));
@@ -759,9 +836,12 @@ nemo_toolbar_set_ui_manager (NemoToolbar *self,
         /* las vistas registran sus acciones al montarse */
         g_signal_connect_swapped (ui_manager, "actions-changed",
                                   G_CALLBACK (toolbar_update_arrange_button), self);
+        g_signal_connect_swapped (ui_manager, "actions-changed",
+                                  G_CALLBACK (toolbar_update_finder_buttons), self);
     }
 
     toolbar_update_arrange_button (self);
+    toolbar_update_finder_buttons (self);
 }
 
 void

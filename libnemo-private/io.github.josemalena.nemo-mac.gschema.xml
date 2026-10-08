@@ -327,6 +327,26 @@
       <summary>Use a Finder-style toolbar</summary>
       <description>Use Finder-inspired navigation, view selector and toolbar styling.</description>
     </key>
+    <key name="toolbar-finder-show-get-info" type="b">
+      <default>false</default>
+      <summary>Show Get Info in the Finder toolbar</summary>
+      <description>Show the Get Info button (file properties) in the Finder-style toolbar.</description>
+    </key>
+    <key name="toolbar-finder-show-delete" type="b">
+      <default>false</default>
+      <summary>Show Delete in the Finder toolbar</summary>
+      <description>Show the Delete button (move to trash) in the Finder-style toolbar.</description>
+    </key>
+    <key name="toolbar-finder-show-sidebar" type="b">
+      <default>false</default>
+      <summary>Show Sidebar in the Finder toolbar</summary>
+      <description>Show the Sidebar button in the Finder-style toolbar.</description>
+    </key>
+    <key name="toolbar-finder-show-path" type="b">
+      <default>false</default>
+      <summary>Show Path in the Finder toolbar</summary>
+      <description>Show the Path button (edit location) in the Finder-style toolbar.</description>
+    </key>
     <key name="sidebar-finder-sections" type="b">
       <default>true</default>
       <summary>Use Finder-style sidebar sections</summary>
