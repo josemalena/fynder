@@ -199,6 +199,7 @@ typedef enum {
     SECTION_COMPUTER,
     SECTION_XDG_BOOKMARKS,
     SECTION_BOOKMARKS,
+	SECTION_ICLOUD,
 	SECTION_DEVICES,
 	SECTION_NETWORK,
 } SectionType;
@@ -897,39 +898,42 @@ update_places (NemoPlacesSidebar *sidebar)
         }
     }
 
-    /* file system root */
-    mount_uri = (char *)"file:///"; /* No need to strdup */
-    icon = NEMO_ICON_SYMBOLIC_FILESYSTEM;
 
-    df_file = g_file_new_for_uri (mount_uri);
-    full = get_disk_full (df_file, &tooltip_info);
-    g_clear_object (&df_file);
+    if (!finder_sections) {
+        /* file system root */
+        mount_uri = (char *)"file:///"; /* No need to strdup */
+        icon = NEMO_ICON_SYMBOLIC_FILESYSTEM;
 
-    tooltip = g_strdup_printf (_("Open the contents of the File System\n%s"), tooltip_info);
-    g_free (tooltip_info);
-    cat_iter = add_place (sidebar, PLACES_BUILT_IN,
-                           SECTION_COMPUTER,
-                           _("File System"), icon,
-                           mount_uri, NULL, NULL, NULL, 0,
-                           tooltip,
-                           full, full > -1,
-                           cat_iter);
-    g_free (tooltip);
+        df_file = g_file_new_for_uri (mount_uri);
+        full = get_disk_full (df_file, &tooltip_info);
+        g_clear_object (&df_file);
 
-    if (sidebar->bottom_bookend_uri == NULL) {
-        sidebar->bottom_bookend_uri = g_strdup (mount_uri);
-    }
-
-    if (eel_vfs_supports_uri_scheme("trash")) {
-        mount_uri = (char *)"trash:///"; /* No need to strdup */
-        icon = nemo_trash_monitor_get_symbolic_icon_name ();
+        tooltip = g_strdup_printf (_("Open the contents of the File System\n%s"), tooltip_info);
+        g_free (tooltip_info);
         cat_iter = add_place (sidebar, PLACES_BUILT_IN,
                                SECTION_COMPUTER,
-                               _("Trash"), icon, mount_uri,
-                               NULL, NULL, NULL, 0,
-                               _("Open the trash"), 0, FALSE,
+                               _("File System"), icon,
+                               mount_uri, NULL, NULL, NULL, 0,
+                               tooltip,
+                               full, full > -1,
                                cat_iter);
-        g_free (icon);
+        g_free (tooltip);
+
+        if (sidebar->bottom_bookend_uri == NULL) {
+            sidebar->bottom_bookend_uri = g_strdup (mount_uri);
+        }
+
+        if (eel_vfs_supports_uri_scheme("trash")) {
+            mount_uri = (char *)"trash:///"; /* No need to strdup */
+            icon = nemo_trash_monitor_get_symbolic_icon_name ();
+            cat_iter = add_place (sidebar, PLACES_BUILT_IN,
+                                   SECTION_COMPUTER,
+                                   _("Trash"), icon, mount_uri,
+                                   NULL, NULL, NULL, 0,
+                                   _("Open the trash"), 0, FALSE,
+                                   cat_iter);
+            g_free (icon);
+        }
     }
 
     if (!finder_sections) {
@@ -965,15 +969,50 @@ update_places (NemoPlacesSidebar *sidebar)
         if (icloud_path[0] != '\0' && g_file_test (icloud_path, G_FILE_TEST_IS_DIR)) {
             gchar *icloud_uri = g_filename_to_uri (icloud_path, NULL, NULL);
             if (icloud_uri != NULL) {
-                cat_iter = add_heading (sidebar, SECTION_BOOKMARKS, _("iCloud"));
+                cat_iter = add_heading (sidebar, SECTION_ICLOUD, _("iCloud"));
                 icon = NEMO_ICON_SYMBOLIC_FOLDER;
-                cat_iter = add_place (sidebar, PLACES_BUILT_IN, SECTION_BOOKMARKS,
+                cat_iter = add_place (sidebar, PLACES_BUILT_IN, SECTION_ICLOUD,
                                        _("iCloud Drive"), icon, icloud_uri,
                                        NULL, NULL, NULL, 0, icloud_path, 0, FALSE, cat_iter);
                 g_free (icloud_uri);
             }
         }
         g_free (icloud_path);
+
+        /* In Finder mode, local locations live below iCloud rather than Favorites. */
+        mount_uri = (char *)"file:///"; /* No need to strdup */
+        icon = NEMO_ICON_SYMBOLIC_FILESYSTEM;
+
+        df_file = g_file_new_for_uri (mount_uri);
+        full = get_disk_full (df_file, &tooltip_info);
+        g_clear_object (&df_file);
+
+        tooltip = g_strdup_printf (_("Open the contents of the File System\n%s"), tooltip_info);
+        g_free (tooltip_info);
+        cat_iter = add_place (sidebar, PLACES_BUILT_IN,
+                               SECTION_DEVICES,
+                               _("File System"), icon,
+                               mount_uri, NULL, NULL, NULL, 0,
+                               tooltip,
+                               full, full > -1,
+                               cat_iter);
+        g_free (tooltip);
+
+        if (sidebar->bottom_bookend_uri == NULL) {
+            sidebar->bottom_bookend_uri = g_strdup (mount_uri);
+        }
+
+        if (eel_vfs_supports_uri_scheme("trash")) {
+            mount_uri = (char *)"trash:///"; /* No need to strdup */
+            icon = nemo_trash_monitor_get_symbolic_icon_name ();
+            cat_iter = add_place (sidebar, PLACES_BUILT_IN,
+                                   SECTION_DEVICES,
+                                   _("Trash"), icon, mount_uri,
+                                   NULL, NULL, NULL, 0,
+                                   _("Open the trash"), 0, FALSE,
+                                   cat_iter);
+            g_free (icon);
+        }
     }
 
     GList *place_infos = NULL;
