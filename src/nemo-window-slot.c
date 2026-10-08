@@ -30,6 +30,7 @@
 #include "nemo-desktop-window.h"
 #include "nemo-filter-bar.h"
 #include "nemo-floating-bar.h"
+#include "nemo-toolbar.h"
 #include "nemo-window-private.h"
 #include "nemo-window-manage-views.h"
 #include "nemo-window-types.h"
@@ -129,6 +130,8 @@ query_editor_cancel_callback (NemoQueryEditor *editor,
 	gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (search), FALSE);
 }
 
+static gboolean toolbar_search_has_focus (NemoWindowSlot *slot);
+
 static void
 query_editor_changed_callback (NemoQueryEditor *editor,
 			       NemoQuery *query,
@@ -147,8 +150,10 @@ query_editor_changed_callback (NemoQueryEditor *editor,
 		   indicate the directory needs to be sync'd with the
 		   current query. */
 		create_new_search (slot);
-		/* Focus is now on the new slot, move it back to query_editor */
-		gtk_widget_grab_focus (GTK_WIDGET (slot->query_editor));
+		/* Focus is now on the new slot, move it back to query_editor
+		 * (salvo que se esté escribiendo en el campo del toolbar) */
+		if (!toolbar_search_has_focus (slot))
+			gtk_widget_grab_focus (GTK_WIDGET (slot->query_editor));
 	} else {
 		sync_search_directory (slot);
 	}
@@ -191,7 +196,8 @@ ensure_query_editor (NemoWindowSlot *slot)
                                   nemo_window_slot_get_location_uri (slot),
                                   TRUE);
 
-	gtk_widget_grab_focus (GTK_WIDGET (slot->query_editor));
+	if (!toolbar_search_has_focus (slot))
+		gtk_widget_grab_focus (GTK_WIDGET (slot->query_editor));
 }
 
 void
@@ -312,6 +318,23 @@ create_nsr_box (NemoWindowSlot *slot)
     slot->no_results_label = widget;
 }
 
+/* TRUE si quien tiene el foco es el campo de búsqueda del toolbar: mientras
+ * escribes ahí, ni la vista ni el editor de consultas deben robárselo. */
+static gboolean
+toolbar_search_has_focus (NemoWindowSlot *slot)
+{
+	GtkWidget *toplevel = gtk_widget_get_toplevel (GTK_WIDGET (slot));
+	GtkWidget *focus;
+
+	if (!GTK_IS_WINDOW (toplevel))
+		return FALSE;
+
+	focus = gtk_window_get_focus (GTK_WINDOW (toplevel));
+
+	return focus != NULL && GTK_IS_SEARCH_ENTRY (focus) &&
+	       gtk_widget_get_ancestor (focus, NEMO_TYPE_TOOLBAR) != NULL;
+}
+
 static void
 view_begin_loading_cb (NemoView       *view,
                        NemoWindowSlot *slot)
@@ -321,7 +344,8 @@ view_begin_loading_cb (NemoView       *view,
         nemo_filter_bar_set_text (NEMO_FILTER_BAR (slot->filter_bar), "");
     }
 
-    nemo_view_grab_focus (view);
+    if (!toolbar_search_has_focus (slot))
+        nemo_view_grab_focus (view);
 }
 
 static void

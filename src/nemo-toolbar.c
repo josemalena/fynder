@@ -69,6 +69,7 @@ struct _NemoToolbarPriv {
     GtkWidget *search_item;
     GtkWidget *search_entry;
     gboolean updating_search;
+    gboolean select_on_focus;
 
     GtkUIManager *window_ui_manager;
 
@@ -342,6 +343,19 @@ action_button_clicked_cb (GtkButton *button,
 }
 
 #define FINDER_SEARCH_WIDTH 220
+
+/* Recuperar el foco (p. ej. al refrescarse los resultados) no debe dejar el
+ * texto seleccionado: lo siguiente que teclees lo reemplazaría. */
+static gboolean
+search_entry_focus_in_cb (GtkWidget *entry,
+                          GdkEvent *event,
+                          NemoToolbar *self)
+{
+    if (!self->priv->select_on_focus)
+        gtk_editable_set_position (GTK_EDITABLE (entry), -1);
+
+    return FALSE;
+}
 
 static void
 search_entry_stop_cb (GtkSearchEntry *entry,
@@ -721,6 +735,8 @@ nemo_toolbar_constructed (GObject *obj)
                       G_CALLBACK (search_entry_changed_cb), self);
     g_signal_connect (self->priv->search_entry, "stop-search",
                       G_CALLBACK (search_entry_stop_cb), self);
+    g_signal_connect_after (self->priv->search_entry, "focus-in-event",
+                            G_CALLBACK (search_entry_focus_in_cb), self);
     gtk_container_add (GTK_CONTAINER (tool_box), self->priv->search_entry);
     gtk_container_add (GTK_CONTAINER (self->priv->toolbar), GTK_WIDGET (tool_box));
     gtk_widget_show_all (GTK_WIDGET (tool_box));
@@ -916,7 +932,9 @@ nemo_toolbar_activate_search (NemoToolbar *self)
         !gtk_widget_get_visible (self->priv->search_item))
         return FALSE;
 
+    self->priv->select_on_focus = TRUE;
     gtk_widget_grab_focus (self->priv->search_entry);
+    self->priv->select_on_focus = FALSE;
     return TRUE;
 }
 
