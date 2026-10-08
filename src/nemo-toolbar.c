@@ -59,6 +59,9 @@ struct _NemoToolbarPriv {
     GtkWidget *navigation_box;
     GtkWidget *show_thumbnails_button;
     GtkWidget *show_extra_pane_button;
+    GtkWidget *arrange_button;
+
+    GtkUIManager *window_ui_manager;
 
 	GtkWidget *path_bar;
 	GtkWidget *location_bar;
@@ -104,6 +107,71 @@ nemo_toolbar_update_root_state (NemoToolbar *self)
     } else {
         self->priv->show_root_bar = FALSE;
     }
+}
+
+#define ARRANGE_ITEMS_PATH "/MenuBar/View/View Items Placeholder/Arrange Items"
+
+static GtkWidget *
+toolbar_create_menu_button (const gchar *icon_name,
+                            const gchar *tooltip)
+{
+    GtkWidget *button = gtk_button_new ();
+    GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 2);
+
+    gtk_container_add (GTK_CONTAINER (box),
+                       gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_SMALL_TOOLBAR));
+    gtk_container_add (GTK_CONTAINER (box),
+                       gtk_image_new_from_icon_name ("pan-down-symbolic", GTK_ICON_SIZE_MENU));
+    gtk_container_add (GTK_CONTAINER (button), box);
+    gtk_widget_set_tooltip_text (button, tooltip);
+    gtk_widget_set_can_focus (button, FALSE);
+    gtk_style_context_add_class (gtk_widget_get_style_context (button), GTK_STYLE_CLASS_FLAT);
+    gtk_widget_show_all (button);
+
+    return button;
+}
+
+static GtkWidget *
+toolbar_get_arrange_menu (NemoToolbar *self)
+{
+    GtkWidget *item;
+
+    if (self->priv->window_ui_manager == NULL)
+        return NULL;
+
+    item = gtk_ui_manager_get_widget (self->priv->window_ui_manager, ARRANGE_ITEMS_PATH);
+    if (item == NULL || !gtk_widget_get_visible (item))
+        return NULL;
+
+    return gtk_menu_item_get_submenu (GTK_MENU_ITEM (item));
+}
+
+/* Arrange solo existe cuando la vista activa registra «Arrange Items»
+ * (iconos y compacta); en lista no hay menú de orden y el botón se oculta. */
+static void
+toolbar_update_arrange_button (NemoToolbar *self)
+{
+    gboolean finder_layout = g_settings_get_boolean (nemo_preferences,
+                                                     NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT);
+
+    if (self->priv->arrange_button == NULL)
+        return;
+
+    gtk_widget_set_visible (self->priv->arrange_button,
+                            finder_layout && toolbar_get_arrange_menu (self) != NULL);
+}
+
+static void
+arrange_button_clicked_cb (GtkButton *button,
+                           NemoToolbar *self)
+{
+    GtkWidget *menu = toolbar_get_arrange_menu (self);
+
+    if (menu == NULL)
+        return;
+
+    gtk_menu_popup_at_widget (GTK_MENU (menu), GTK_WIDGET (button),
+                              GDK_GRAVITY_SOUTH_WEST, GDK_GRAVITY_NORTH_WEST, NULL);
 }
 
 static void
@@ -233,6 +301,8 @@ toolbar_update_appearance (NemoToolbar *self)
         gtk_style_context_remove_class (gtk_widget_get_style_context (self->priv->toolbar), "nemo-finder-toolbar-inner");
         gtk_style_context_remove_class (gtk_widget_get_style_context (self->priv->navigation_box), "linked");
     }
+
+    toolbar_update_arrange_button (self);
 }
 
 static void
@@ -395,6 +465,13 @@ nemo_toolbar_constructed (GObject *obj)
     gtk_container_add (GTK_CONTAINER (self->priv->view_switcher), self->priv->compact_view_button);
     gtk_container_add (GTK_CONTAINER (box), self->priv->view_switcher);
 
+    /* Solo en el layout Finder: menú de orden de la vista activa */
+    self->priv->arrange_button = toolbar_create_menu_button ("view-sort-ascending-symbolic",
+                                                             _("Arrange items"));
+    g_signal_connect (self->priv->arrange_button, "clicked",
+                      G_CALLBACK (arrange_button_clicked_cb), self);
+    gtk_container_add (GTK_CONTAINER (box), self->priv->arrange_button);
+
     gtk_container_add (GTK_CONTAINER (tool_box), GTK_WIDGET (box));
     gtk_container_add (GTK_CONTAINER (self->priv->toolbar), GTK_WIDGET (tool_box));
 
@@ -468,6 +545,11 @@ nemo_toolbar_dispose (GObject *obj)
 
 	g_clear_object (&self->priv->action_group);
 
+    if (self->priv->window_ui_manager != NULL) {
+        g_signal_handlers_disconnect_by_data (self->priv->window_ui_manager, self);
+        g_clear_object (&self->priv->window_ui_manager);
+    }
+
 	g_signal_handlers_disconnect_by_func (nemo_preferences,
 					      toolbar_update_appearance, self);
 
@@ -523,6 +605,27 @@ nemo_toolbar_new (GtkActionGroup *action_group)
 			     "action-group", action_group,
 			     "orientation", GTK_ORIENTATION_VERTICAL,
 			     NULL);
+}
+
+void
+nemo_toolbar_set_ui_manager (NemoToolbar *self,
+                             GtkUIManager *ui_manager)
+{
+    g_return_if_fail (NEMO_IS_TOOLBAR (self));
+
+    if (self->priv->window_ui_manager != NULL) {
+        g_signal_handlers_disconnect_by_data (self->priv->window_ui_manager, self);
+        g_clear_object (&self->priv->window_ui_manager);
+    }
+
+    if (ui_manager != NULL) {
+        self->priv->window_ui_manager = g_object_ref (ui_manager);
+        /* las vistas registran sus acciones al montarse */
+        g_signal_connect_swapped (ui_manager, "actions-changed",
+                                  G_CALLBACK (toolbar_update_arrange_button), self);
+    }
+
+    toolbar_update_arrange_button (self);
 }
 
 GtkWidget *

@@ -921,6 +921,8 @@ nemo_window_pane_constructed (GObject *obj)
 	action_group = nemo_window_create_toolbar_action_group (window);
 	pane->toolbar_action_group = action_group;
 	pane->tool_bar = GTK_WIDGET (nemo_toolbar_new (action_group));
+	nemo_toolbar_set_ui_manager (NEMO_TOOLBAR (pane->tool_bar),
+				     nemo_window_get_ui_manager (window));
 
     g_signal_connect_object (pane->tool_bar, "notify::show-location-entry",
                              G_CALLBACK (location_entry_changed_cb),
