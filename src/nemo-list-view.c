@@ -2497,6 +2497,7 @@ update_date_fonts (NemoListView *view)
     mono_pref = g_settings_get_enum (nemo_preferences, NEMO_PREFERENCES_DATE_FONT_CHOICE);
 
     if (g_settings_get_enum (nemo_preferences, NEMO_PREFERENCES_DATE_FORMAT) == NEMO_DATE_FORMAT_INFORMAL ||
+        g_settings_get_enum (nemo_preferences, NEMO_PREFERENCES_DATE_FORMAT) == NEMO_DATE_FORMAT_FINDER ||
         mono_pref == NEMO_DATE_FONT_CHOICE_NONE ||
         g_strstr_len (font_name, -1, "Mono")) {
         date_name = g_strdup (font_name);
