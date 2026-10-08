@@ -21,9 +21,11 @@
 #include "nemo-statusbar.h"
 
 #include "nemo-actions.h"
+#include "nemo-window-private.h"
 
 #include <config.h>
 #include <glib/gi18n.h>
+#include <libnemo-private/nemo-global-preferences.h>
 
 enum {
         LAST_SIGNAL
@@ -35,6 +37,8 @@ enum {
 };
 
 static GParamSpec *properties[NUM_PROPERTIES] = { NULL, };
+
+static void sync_location_button_visibility (NemoStatusBar *bar);
 
 G_DEFINE_TYPE (NemoStatusBar, nemo_status_bar, GTK_TYPE_BOX);
 
@@ -85,6 +89,9 @@ nemo_status_bar_dispose (GObject *object)
 {
     NemoStatusBar *bar = NEMO_STATUS_BAR (object);
 
+    g_signal_handlers_disconnect_by_func (nemo_preferences,
+                                          sync_location_button_visibility,
+                                          bar);
     bar->window = NULL;
 
     G_OBJECT_CLASS (nemo_status_bar_parent_class)->dispose (object);
@@ -116,6 +123,20 @@ static void
 action_hide_sidebar_callback (GtkButton *button, NemoStatusBar *bar)
 {
     nemo_window_hide_sidebar (bar->window);
+}
+
+static void
+action_show_location_callback (GtkButton *button, NemoStatusBar *bar)
+{
+    nemo_window_show_location_entry (bar->window);
+}
+
+static void
+sync_location_button_visibility (NemoStatusBar *bar)
+{
+    gtk_widget_set_visible (bar->location_button,
+                            g_settings_get_boolean (nemo_preferences,
+                                                    NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT));
 }
 
 static void
@@ -211,6 +232,15 @@ nemo_status_bar_constructed (GObject *object)
     g_signal_connect (GTK_BUTTON (button), "clicked",
                       G_CALLBACK (action_show_sidebar_callback), bar);
 
+    button = gtk_button_new ();
+    icon = gtk_image_new_from_icon_name ("nemo-location-symbolic", size);
+    gtk_button_set_image (GTK_BUTTON (button), icon);
+    gtk_widget_set_tooltip_text (GTK_WIDGET (button), _("Show Location Entry"));
+    bar->location_button = button;
+    gtk_box_pack_start (GTK_BOX (bar), button, FALSE, FALSE, 2);
+    g_signal_connect (GTK_BUTTON (button), "clicked",
+                      G_CALLBACK (action_show_location_callback), bar);
+
     gtk_box_pack_start (GTK_BOX (bar), statusbar, TRUE, TRUE, 10);
     gtk_widget_set_margin_top (GTK_WIDGET (statusbar), 0);
     gtk_widget_set_margin_bottom (GTK_WIDGET (statusbar), 0);
@@ -251,6 +281,11 @@ nemo_status_bar_constructed (GObject *object)
     g_list_free (children);
 
     nemo_status_bar_sync_button_states (bar);
+    sync_location_button_visibility (bar);
+
+    g_signal_connect_swapped (nemo_preferences,
+                              "changed::" NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT,
+                              G_CALLBACK (sync_location_button_visibility), bar);
 }
 
 

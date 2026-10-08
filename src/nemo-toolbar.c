@@ -56,6 +56,7 @@ struct _NemoToolbarPriv {
     GtkWidget *list_view_button;
     GtkWidget *compact_view_button;
     GtkWidget *view_switcher;
+    GtkWidget *navigation_box;
     GtkWidget *show_thumbnails_button;
     GtkWidget *show_extra_pane_button;
 
@@ -111,6 +112,7 @@ toolbar_update_appearance (NemoToolbar *self)
 	GtkWidget *widgetitem;
 	gboolean icon_toolbar;
 	gboolean show_location_entry;
+    gboolean finder_layout;
 
     nemo_toolbar_update_root_state (self);
 
@@ -210,6 +212,27 @@ toolbar_update_appearance (NemoToolbar *self)
     } else {
         gtk_style_context_remove_class (gtk_widget_get_style_context (self->priv->view_switcher), "linked");
     }
+
+    finder_layout = g_settings_get_boolean (nemo_preferences,
+                                             NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT);
+    if (finder_layout) {
+        gtk_style_context_add_class (gtk_widget_get_style_context (GTK_WIDGET (self)), "nemo-finder-toolbar");
+        gtk_style_context_add_class (gtk_widget_get_style_context (self->priv->toolbar), "nemo-finder-toolbar-inner");
+        gtk_style_context_add_class (gtk_widget_get_style_context (self->priv->navigation_box), "linked");
+        gtk_style_context_add_class (gtk_widget_get_style_context (self->priv->view_switcher), "linked");
+
+        gtk_widget_show (self->priv->previous_button);
+        gtk_widget_show (self->priv->next_button);
+        gtk_widget_hide (self->priv->up_button);
+        gtk_widget_hide (self->priv->refresh_button);
+        gtk_widget_hide (self->priv->home_button);
+        gtk_widget_hide (self->priv->computer_button);
+        gtk_widget_hide (self->priv->toggle_location_button);
+    } else {
+        gtk_style_context_remove_class (gtk_widget_get_style_context (GTK_WIDGET (self)), "nemo-finder-toolbar");
+        gtk_style_context_remove_class (gtk_widget_get_style_context (self->priv->toolbar), "nemo-finder-toolbar-inner");
+        gtk_style_context_remove_class (gtk_widget_get_style_context (self->priv->navigation_box), "linked");
+    }
 }
 
 static void
@@ -287,6 +310,7 @@ nemo_toolbar_constructed (GObject *obj)
     /* Left side of the toolbar */
     tool_box = gtk_tool_item_new ();
     box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 2);
+    self->priv->navigation_box = box;
 
     self->priv->previous_button = toolbar_create_toolbutton (self, FALSE, NEMO_ACTION_BACK);
     gtk_container_add (GTK_CONTAINER (box), self->priv->previous_button);

@@ -45,6 +45,7 @@ G_BEGIN_DECLS
 #define NEMO_PREFERENCES_DATE_FORMAT            "date-format"
 #define NEMO_PREFERENCES_CLAIM_FILE_MANAGER1     "claim-filemanager1"
 #define NEMO_PREFERENCES_TOOLBAR_LINKED_VIEW_SWITCHER "toolbar-linked-view-switcher"
+#define NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT "toolbar-finder-layout"
 #define NEMO_PREFERENCES_SIDEBAR_FINDER_SECTIONS "sidebar-finder-sections"
 #define NEMO_PREFERENCES_SIDEBAR_ICLOUD_PATH "sidebar-icloud-path"
 #define NEMO_PREFERENCES_DATE_FONT_CHOICE  "date-font-choice"
