@@ -4455,6 +4455,48 @@ nemo_list_view_end_loading (NemoView *view,
 	list_view_notify_clipboard_info (monitor, info, NEMO_LIST_VIEW (view));
 }
 
+/* Ordena por una columna desde fuera de la vista (botón Arrange del toolbar).
+ * Devuelve el atributo activo y el sentido en attribute/reversed. */
+gboolean
+nemo_list_view_get_sort (NemoListView *list_view,
+			 const char **attribute,
+			 gboolean *reversed)
+{
+	gint sort_column_id;
+	GtkSortType order;
+	GQuark attr;
+
+	if (!gtk_tree_sortable_get_sort_column_id (GTK_TREE_SORTABLE (list_view->details->model),
+						   &sort_column_id, &order))
+		return FALSE;
+
+	attr = nemo_list_model_get_attribute_from_sort_column_id (list_view->details->model,
+								  sort_column_id);
+	*attribute = attr != 0 ? g_quark_to_string (attr) : NULL;
+	*reversed = (order == GTK_SORT_DESCENDING);
+	return *attribute != NULL;
+}
+
+void
+nemo_list_view_set_sort (NemoListView *list_view,
+			 const char *attribute,
+			 gboolean reversed)
+{
+	gint sort_column_id;
+
+	sort_column_id = nemo_list_model_get_sort_column_id_from_attribute (list_view->details->model,
+									    g_quark_from_string (attribute));
+	if (sort_column_id == -1)
+		return;
+
+	/* el primer cambio de columna puede invertir solo (fechas); el segundo fija el sentido */
+	gtk_tree_sortable_set_sort_column_id (GTK_TREE_SORTABLE (list_view->details->model),
+					      sort_column_id, GTK_SORT_ASCENDING);
+	gtk_tree_sortable_set_sort_column_id (GTK_TREE_SORTABLE (list_view->details->model),
+					      sort_column_id,
+					      reversed ? GTK_SORT_DESCENDING : GTK_SORT_ASCENDING);
+}
+
 static const char *
 nemo_list_view_get_id (NemoView *view)
 {

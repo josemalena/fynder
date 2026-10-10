@@ -57,5 +57,7 @@ typedef struct {
 GType nemo_list_view_get_type (void);
 void  nemo_list_view_register (void);
 GtkTreeView* nemo_list_view_get_tree_view (NemoListView *list_view);
+gboolean nemo_list_view_get_sort (NemoListView *list_view, const char **attribute, gboolean *reversed);
+void nemo_list_view_set_sort (NemoListView *list_view, const char *attribute, gboolean reversed);
 
 #endif /* NEMO_LIST_VIEW_H */

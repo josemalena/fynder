@@ -110,7 +110,7 @@ segment_icon_name (GFile *file,
 	}
 
 	if (is_root) {
-		return "drive-harddisk-symbolic";
+		return "drive-harddisk";
 	} else {
 		gchar *path = g_file_get_path (file);
 
@@ -182,6 +182,36 @@ segment_clicked_cb (GtkWidget *widget,
 	return GDK_EVENT_STOP;
 }
 
+/* El icono sale del tema (el mismo que el archivo en la vista y el lateral);
+ * si no hay, queda el simbólico genérico. */
+static GtkWidget *
+segment_image_new (GFile *file,
+                   gboolean is_root)
+{
+	GtkWidget *image = NULL;
+
+	if (g_file_is_native (file)) {
+		GFileInfo *info = g_file_query_info (file, G_FILE_ATTRIBUTE_STANDARD_ICON,
+		                                     G_FILE_QUERY_INFO_NONE, NULL, NULL);
+
+		if (info != NULL) {
+			GIcon *icon = g_file_info_get_icon (info);
+
+			if (is_root)
+				icon = NULL; /* la raíz muestra el disco, no la carpeta «/» */
+			if (icon != NULL)
+				image = gtk_image_new_from_gicon (icon, GTK_ICON_SIZE_MENU);
+			g_object_unref (info);
+		}
+	}
+
+	if (image == NULL)
+		image = gtk_image_new_from_icon_name (segment_icon_name (file, is_root),
+		                                      GTK_ICON_SIZE_MENU);
+	gtk_image_set_pixel_size (GTK_IMAGE (image), 16);
+	return image;
+}
+
 static Segment *
 segment_new (NemoFinderPathBar *bar,
              GFile *file,
@@ -191,8 +221,7 @@ segment_new (NemoFinderPathBar *bar,
 	Segment *segment = g_new0 (Segment, 1);
 	GtkWidget *event_box = gtk_event_box_new ();
 	GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 4);
-	GtkWidget *image = gtk_image_new_from_icon_name (segment_icon_name (file, is_root),
-	                                                 GTK_ICON_SIZE_MENU);
+	GtkWidget *image = segment_image_new (file, is_root);
 	gchar *name = segment_label (file, is_root);
 	GtkWidget *label = gtk_label_new (name);
 

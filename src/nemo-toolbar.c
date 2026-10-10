@@ -30,6 +30,8 @@
 #include "nemo-location-bar.h"
 #include "nemo-pathbar.h"
 #include "nemo-window-private.h"
+#include "nemo-window-slot.h"
+#include "nemo-list-view.h"
 #include "nemo-actions.h"
 #include "nemo-file-utilities.h"
 #include <glib/gi18n.h>
@@ -196,6 +198,22 @@ toolbar_popup_menu_at_button (GtkWidget *menu,
                               GDK_GRAVITY_SOUTH_WEST, GDK_GRAVITY_NORTH_WEST, NULL);
 }
 
+static NemoListView *
+toolbar_get_list_view (NemoToolbar *self)
+{
+    GtkWidget *top = gtk_widget_get_toplevel (GTK_WIDGET (self));
+    NemoWindowSlot *slot;
+
+    if (!NEMO_IS_WINDOW (top))
+        return NULL;
+
+    slot = nemo_window_get_active_slot (NEMO_WINDOW (top));
+    if (slot == NULL || !NEMO_IS_LIST_VIEW (slot->content_view))
+        return NULL;
+
+    return NEMO_LIST_VIEW (slot->content_view);
+}
+
 static GtkWidget *
 toolbar_get_arrange_menu (NemoToolbar *self)
 {
@@ -211,8 +229,91 @@ toolbar_get_arrange_menu (NemoToolbar *self)
     return gtk_menu_item_get_submenu (GTK_MENU_ITEM (item));
 }
 
-/* Arrange solo existe cuando la vista activa registra «Arrange Items»
- * (iconos y compacta); en lista no hay menú de orden y el botón se oculta. */
+static const struct {
+    const gchar *attribute;
+    const gchar *label;
+} list_sort_options[] = {
+    { "name",          N_("Name") },
+    { "type",          N_("Kind") },
+    { "date_modified", N_("Date Modified") },
+    { "size",          N_("Size") },
+};
+
+static void
+list_sort_item_activate_cb (GtkMenuItem *item,
+                            NemoToolbar *self)
+{
+    NemoListView *list_view = toolbar_get_list_view (self);
+    const gchar *attribute = g_object_get_data (G_OBJECT (item), "sort-attribute");
+    const gchar *current;
+    gboolean reversed;
+
+    if (list_view == NULL)
+        return;
+
+    if (g_object_get_data (G_OBJECT (item), "sort-reverse") != NULL) {
+        if (nemo_list_view_get_sort (list_view, &current, &reversed))
+            nemo_list_view_set_sort (list_view, current, !reversed);
+        return;
+    }
+
+    nemo_list_view_set_sort (list_view, attribute, nemo_file_is_date_sort_attribute_q (g_quark_from_string (attribute)));
+}
+
+static gboolean
+list_sort_menu_unref_cb (gpointer menu)
+{
+    g_object_unref (menu);
+    return G_SOURCE_REMOVE;
+}
+
+/* el «activate» del item llega después de «deactivate»: soltar el menú con calma */
+static void
+list_sort_menu_deactivate_cb (GtkMenuShell *menu,
+                              gpointer user_data)
+{
+    g_signal_handlers_disconnect_by_func (menu, list_sort_menu_deactivate_cb, user_data);
+    g_timeout_add_seconds (1, list_sort_menu_unref_cb, g_object_ref (menu));
+    g_object_unref (menu);
+}
+
+/* En lista, Arrange ordena por columna, como el Finder. */
+static GtkWidget *
+toolbar_build_list_sort_menu (NemoToolbar *self,
+                              NemoListView *list_view)
+{
+    GtkWidget *menu = gtk_menu_new ();
+    GtkWidget *item;
+    const gchar *current = NULL;
+    gboolean reversed = FALSE;
+    gsize i;
+
+    nemo_list_view_get_sort (list_view, &current, &reversed);
+
+    for (i = 0; i < G_N_ELEMENTS (list_sort_options); i++) {
+        item = gtk_check_menu_item_new_with_label (_(list_sort_options[i].label));
+        gtk_check_menu_item_set_draw_as_radio (GTK_CHECK_MENU_ITEM (item), TRUE);
+        gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (item),
+                                        g_strcmp0 (current, list_sort_options[i].attribute) == 0);
+        g_object_set_data (G_OBJECT (item), "sort-attribute", (gpointer) list_sort_options[i].attribute);
+        g_signal_connect (item, "activate", G_CALLBACK (list_sort_item_activate_cb), self);
+        gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
+    }
+
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_separator_menu_item_new ());
+
+    item = gtk_check_menu_item_new_with_label (_("Reverse Order"));
+    gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (item), reversed);
+    g_object_set_data (G_OBJECT (item), "sort-reverse", GINT_TO_POINTER (1));
+    g_signal_connect (item, "activate", G_CALLBACK (list_sort_item_activate_cb), self);
+    gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
+
+    gtk_widget_show_all (menu);
+    return menu;
+}
+
+/* Arrange existe siempre: en iconos y compacta usa «Arrange Items»; en lista
+ * ordena por columna. */
 static void
 toolbar_update_arrange_button (NemoToolbar *self)
 {
@@ -223,7 +324,9 @@ toolbar_update_arrange_button (NemoToolbar *self)
         return;
 
     gtk_widget_set_visible (self->priv->arrange_button,
-                            finder_layout && toolbar_get_arrange_menu (self) != NULL);
+                            finder_layout &&
+                            (toolbar_get_arrange_menu (self) != NULL ||
+                             toolbar_get_list_view (self) != NULL));
 }
 
 static void
@@ -231,9 +334,16 @@ arrange_button_clicked_cb (GtkButton *button,
                            NemoToolbar *self)
 {
     GtkWidget *menu = toolbar_get_arrange_menu (self);
+    NemoListView *list_view;
 
-    if (menu == NULL)
-        return;
+    if (menu == NULL) {
+        list_view = toolbar_get_list_view (self);
+        if (list_view == NULL)
+            return;
+        menu = toolbar_build_list_sort_menu (self, list_view);
+        g_object_ref_sink (menu);
+        g_signal_connect (menu, "deactivate", G_CALLBACK (list_sort_menu_deactivate_cb), NULL);
+    }
 
     toolbar_popup_menu_at_button (menu, GTK_WIDGET (button));
 }
