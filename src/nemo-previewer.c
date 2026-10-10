@@ -30,9 +30,11 @@
 
 G_DEFINE_TYPE (NemoPreviewer, nemo_previewer, G_TYPE_OBJECT);
 
-#define PREVIEWER_DBUS_NAME "io.github.josemalena.fynder.Preview"
-#define PREVIEWER_DBUS_IFACE "io.github.josemalena.fynder.Preview"
-#define PREVIEWER_DBUS_PATH "/io/github/josemalena/fynder/Preview"
+/* Servicio de nemo-preview (paquete de Mint, ya instalado). Es un servicio sin
+ * estado que solo muestra una ventana: compartirlo con Nemo no choca. */
+#define PREVIEWER_DBUS_NAME "org.nemo.Preview"
+#define PREVIEWER_DBUS_IFACE "org.nemo.Preview"
+#define PREVIEWER_DBUS_PATH "/org/nemo/Preview"
 
 static NemoPreviewer *singleton = NULL;
 
