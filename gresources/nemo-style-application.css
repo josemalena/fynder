@@ -80,6 +80,8 @@ NemoDesktopWindow GtkPaned {
 /* Finder toolbar: enabled only by toolbar-finder-layout. */
 .nemo-finder-toolbar,
 .nemo-finder-toolbar-inner.primary-toolbar {
+    padding-top: 0;
+    padding-bottom: 0;
     background-color: #474844;
     background-image: none;
     border-color: #292a28;
@@ -88,9 +90,9 @@ NemoDesktopWindow GtkPaned {
 
 .nemo-finder-toolbar button {
     min-width: 40px;
-    min-height: 36px;
+    min-height: 34px;           /* + 2 px de borde = 36 px, la altura de la barra de Nemo */
     padding: 0 9px;
-    margin: 2px;
+    margin: 0 2px;
     border-radius: 5px;
     background-color: #666762;
     background-image: none;
@@ -123,8 +125,10 @@ NemoDesktopWindow GtkPaned {
 }
 
 .nemo-finder-toolbar entry {
-    min-height: 36px;
-    margin: 2px;
+    min-height: 34px;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin: 0 2px;
     border-radius: 6px;
     background-color: #2f302d;
     background-image: none;
