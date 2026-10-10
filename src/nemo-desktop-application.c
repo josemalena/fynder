@@ -217,7 +217,7 @@ desktop_already_managed (void)
         GdkWindow *window = GDK_WINDOW (iter->data);
 
         if (gdk_window_get_type_hint (window) == GDK_WINDOW_TYPE_HINT_DESKTOP) {
-            GSettings *desktop_preferences = g_settings_new("io.github.josemalena.nemo-mac.desktop");
+            GSettings *desktop_preferences = g_settings_new("io.github.josemalena.fynder.desktop");
 
             gchar **ignored = g_settings_get_strv (desktop_preferences, NEMO_PREFERENCES_DESKTOP_IGNORED_DESKTOP_HANDLERS);
             if (!desktop_handler_is_ignored (window, ignored)) {
@@ -234,7 +234,7 @@ desktop_already_managed (void)
 
     if (ret) {
         g_warning ("Desktop already managed by another application, skipping desktop setup.\n"
-                   "To change this, modify io.github.josemalena.nemo-mac.desktop 'ignored-desktop-handlers'.\n");
+                   "To change this, modify io.github.josemalena.fynder.desktop 'ignored-desktop-handlers'.\n");
     }
 
     return ret;
@@ -554,7 +554,7 @@ NemoApplication *
 nemo_desktop_application_get_singleton (void)
 {
     return nemo_application_initialize_singleton (NEMO_TYPE_DESKTOP_APPLICATION,
-                                                  "application-id", "io.github.josemalena.NemoMacDesktop",
+                                                  "application-id", "io.github.josemalena.FynderDesktop",
                                                   "flags", G_APPLICATION_HANDLES_OPEN,
                                                   "register-session", TRUE,
                                                   NULL);

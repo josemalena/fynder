@@ -185,7 +185,7 @@ add_fallback_mandatory_css_provider (const gchar *theme_name)
     if (!g_strstr_len (css, -1, "nemo")) {
         g_warning ("The theme appears to have no nemo support.  Adding some...");
 
-        init_fallback_css = load_file_contents_from_resource ("/io/github/josemalena/nemo-mac/nemo-style-fallback-mandatory.css",
+        init_fallback_css = load_file_contents_from_resource ("/io/github/josemalena/fynder/nemo-style-fallback-mandatory.css",
                                                               &error);
 
         if (!init_fallback_css) {
@@ -314,10 +314,10 @@ init_icons_and_styles (void)
                             NEMO_STATUSBAR_ICON_SIZE,
                             NEMO_STATUSBAR_ICON_SIZE);
 
-    add_css_provider_at_priority ("/io/github/josemalena/nemo-mac/nemo-style-fallback.css",
+    add_css_provider_at_priority ("/io/github/josemalena/fynder/nemo-style-fallback.css",
                                   GTK_STYLE_PROVIDER_PRIORITY_FALLBACK);
 
-    add_css_provider_at_priority ("/io/github/josemalena/nemo-mac/nemo-style-application.css",
+    add_css_provider_at_priority ("/io/github/josemalena/fynder/nemo-style-application.css",
                                   GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
     GtkSettings *gtk_settings = gtk_settings_get_default ();

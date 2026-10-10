@@ -1221,7 +1221,7 @@ get_knob_pixbuf (void)
 						"stock-nemo-knob",
 						8, 0, NULL);
 	if (!knob_pixbuf) {
-		GInputStream *stream = g_resources_open_stream ("/io/github/josemalena/nemo-mac/icons/knob.png", 0, NULL);
+		GInputStream *stream = g_resources_open_stream ("/io/github/josemalena/fynder/icons/knob.png", 0, NULL);
 		if (stream != NULL) {
 			knob_pixbuf = gdk_pixbuf_new_from_stream (stream, NULL, NULL);
 			g_object_unref (stream);

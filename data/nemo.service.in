@@ -1,3 +1,3 @@
 [D-BUS Service]
-Name=io.github.josemalena.NemoMac
+Name=io.github.josemalena.Fynder
 Exec=@bindir@/nemo --no-default-window

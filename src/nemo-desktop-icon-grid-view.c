@@ -1093,7 +1093,7 @@ real_merge_menus (NemoView *view)
     g_object_unref (action_group); /* owned by ui manager */
 
 	desktop_view->details->desktop_merge_id =
-		gtk_ui_manager_add_ui_from_resource (ui_manager, "/io/github/josemalena/nemo-mac/nemo-desktop-icon-grid-view-ui.xml", NULL);
+		gtk_ui_manager_add_ui_from_resource (ui_manager, "/io/github/josemalena/fynder/nemo-desktop-icon-grid-view-ui.xml", NULL);
 }
 
 static NemoView *

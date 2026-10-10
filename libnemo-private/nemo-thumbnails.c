@@ -219,7 +219,7 @@ nemo_get_thumbnail_frame (void)
     static gsize once_init = 0;
 
     if (g_once_init_enter (&once_init)) {
-        GInputStream *stream = g_resources_open_stream ("/io/github/josemalena/nemo-mac/icons/thumbnail_frame.png", 0, NULL);
+        GInputStream *stream = g_resources_open_stream ("/io/github/josemalena/fynder/icons/thumbnail_frame.png", 0, NULL);
         if (stream != NULL) {
             thumbnail_frame = gdk_pixbuf_new_from_stream (stream, NULL, NULL);
             g_object_unref (stream);

@@ -212,7 +212,7 @@ update_actions_menu (NemoBlankDesktopWindow *window)
     gtk_ui_manager_insert_action_group (window->details->ui_manager, window->details->action_group, 0);
 
     window->details->actions_merge_id =
-            gtk_ui_manager_add_ui_from_resource (window->details->ui_manager, "/io/github/josemalena/nemo-mac/nemo-blank-desktop-window-ui.xml", NULL);
+            gtk_ui_manager_add_ui_from_resource (window->details->ui_manager, "/io/github/josemalena/fynder/nemo-blank-desktop-window-ui.xml", NULL);
 
     nemo_action_manager_iterate_actions (window->details->action_manager,
                                          (NemoActionManagerIterFunc) add_action_to_ui,

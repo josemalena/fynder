@@ -346,7 +346,7 @@ nemo_query_editor_init (NemoQueryEditor *editor)
 
     builder = gtk_builder_new ();
     gtk_builder_set_translation_domain (builder, GETTEXT_PACKAGE);
-    if (!gtk_builder_add_from_resource (builder, "/io/github/josemalena/nemo-mac/nemo-search-bar.glade", NULL)) {
+    if (!gtk_builder_add_from_resource (builder, "/io/github/josemalena/fynder/nemo-search-bar.glade", NULL)) {
         g_object_unref (builder);
         return;
     }

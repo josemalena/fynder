@@ -2,7 +2,7 @@
 ################################################################################
 
 desktopFiles = [
-  'nemo-mac.desktop',
+  'fynder.desktop',
 ]
 
 install_data(desktopFiles,

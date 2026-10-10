@@ -418,7 +418,7 @@ action_show_shortcuts_window (GtkAction *action,
     {
         GtkBuilder *builder;
 
-        builder = gtk_builder_new_from_resource ("/io/github/josemalena/nemo-mac/nemo-shortcuts.ui");
+        builder = gtk_builder_new_from_resource ("/io/github/josemalena/fynder/nemo-shortcuts.ui");
         shortcuts_window = GTK_WIDGET (gtk_builder_get_object (builder, "keyboard_shortcuts"));
 
         gtk_window_set_position (GTK_WINDOW (shortcuts_window), GTK_WIN_POS_CENTER);
@@ -2024,7 +2024,7 @@ nemo_window_initialize_menus (NemoWindow *window)
 			  G_CALLBACK (disconnect_proxy_cb), window);
 
 	/* add the UI */
-	gtk_ui_manager_add_ui_from_resource (ui_manager, "/io/github/josemalena/nemo-mac/nemo-shell-ui.xml", NULL);
+	gtk_ui_manager_add_ui_from_resource (ui_manager, "/io/github/josemalena/fynder/nemo-shell-ui.xml", NULL);
 
     GtkWidget *menuitem, *submenu;
     menuitem = gtk_ui_manager_get_widget (nemo_window_get_ui_manager (window), NEMO_VIEW_MENUBAR_FILE_PATH);
