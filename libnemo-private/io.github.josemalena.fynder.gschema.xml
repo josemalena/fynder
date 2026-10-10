@@ -682,6 +682,26 @@
       <summary>Horizontal desktop grid adjustment</summary>
       <description>Overrides the standard horizontal spacing for the desktop grid, in situation where default spacing is not ideal due to label customizations.  This is a value from 0.5 to 1.5, with 1.0 being no adjustment, and 0.5 being half the default spacing.</description>
     </key>
+    <key name="finder-desktop-hard-disks" type="b">
+      <default>true</default>
+      <summary>Show hard disks on the desktop</summary>
+      <description>With the macOS-style desktop, show the startup disk (named after the computer) and the internal disks.</description>
+    </key>
+    <key name="finder-desktop-external-disks" type="b">
+      <default>true</default>
+      <summary>Show external disks on the desktop</summary>
+      <description>With the macOS-style desktop, show removable and external disks.</description>
+    </key>
+    <key name="finder-desktop-optical-disks" type="b">
+      <default>false</default>
+      <summary>Show CDs and DVDs on the desktop</summary>
+      <description>With the macOS-style desktop, show optical discs.</description>
+    </key>
+    <key name="finder-desktop-servers" type="b">
+      <default>true</default>
+      <summary>Show connected servers on the desktop</summary>
+      <description>With the macOS-style desktop, show network shares that are mounted.</description>
+    </key>
     <key name="finder-columns-right-to-left" type="b">
       <default>true</default>
       <summary>Lay out desktop icons in columns from right to left</summary>

@@ -194,6 +194,88 @@ has_mount (NemoDesktopLinkMonitor *monitor,
 	return ret;
 }
 
+/* ---------- Escritorio estilo macOS ----------
+ *
+ * «Show these items on the desktop» del Finder: discos duros, discos externos,
+ * CDs/DVDs y servidores conectados. El disco de arranque sale con el nombre del
+ * equipo (se cuenta entre los discos duros). */
+
+static gboolean
+macos_desktop (void)
+{
+	return g_settings_get_boolean (nemo_desktop_preferences, "finder-columns-right-to-left");
+}
+
+typedef enum {
+	MOUNT_KIND_HARD_DISK,
+	MOUNT_KIND_EXTERNAL,
+	MOUNT_KIND_OPTICAL,
+	MOUNT_KIND_SERVER
+} MountKind;
+
+static MountKind
+classify_mount (GMount *mount)
+{
+	GFile *root = g_mount_get_root (mount);
+	GDrive *drive;
+	GIcon *icon;
+	MountKind kind = MOUNT_KIND_HARD_DISK;
+	gboolean native = g_file_is_native (root);
+
+	g_object_unref (root);
+	if (!native)
+		return MOUNT_KIND_SERVER;
+
+	icon = g_mount_get_icon (mount);
+	if (G_IS_THEMED_ICON (icon)) {
+		const char * const *names = g_themed_icon_get_names (G_THEMED_ICON (icon));
+		int i;
+
+		for (i = 0; names != NULL && names[i] != NULL; i++) {
+			if (strstr (names[i], "optical") != NULL || strstr (names[i], "cdrom") != NULL ||
+			    strstr (names[i], "dvd") != NULL) {
+				kind = MOUNT_KIND_OPTICAL;
+				break;
+			}
+		}
+	}
+	g_clear_object (&icon);
+	if (kind == MOUNT_KIND_OPTICAL)
+		return kind;
+
+	drive = g_mount_get_drive (mount);
+	if (drive != NULL) {
+		if (g_drive_is_removable (drive) || g_drive_is_media_removable (drive))
+			kind = MOUNT_KIND_EXTERNAL;
+		g_object_unref (drive);
+	}
+	return kind;
+}
+
+static gboolean
+mount_kind_visible (GMount *mount)
+{
+	const char *key;
+
+	if (!macos_desktop ())
+		return g_settings_get_boolean (nemo_desktop_preferences,
+					       NEMO_PREFERENCES_DESKTOP_VOLUMES_VISIBLE);
+
+	switch (classify_mount (mount)) {
+	case MOUNT_KIND_EXTERNAL: key = "finder-desktop-external-disks"; break;
+	case MOUNT_KIND_OPTICAL:  key = "finder-desktop-optical-disks"; break;
+	case MOUNT_KIND_SERVER:   key = "finder-desktop-servers"; break;
+	default:                  key = "finder-desktop-hard-disks"; break;
+	}
+	return g_settings_get_boolean (nemo_desktop_preferences, key);
+}
+
+static const char *
+computer_visible_key (void)
+{
+	return macos_desktop () ? "finder-desktop-hard-disks" : NEMO_PREFERENCES_DESKTOP_COMPUTER_VISIBLE;
+}
+
 static void
 create_mount_link (NemoDesktopLinkMonitor *monitor,
 		   GMount *mount)
@@ -203,9 +285,7 @@ create_mount_link (NemoDesktopLinkMonitor *monitor,
 	if (has_mount (monitor, mount))
 		return;
 
-	if ((!g_mount_is_shadowed (mount)) &&
-	    g_settings_get_boolean (nemo_desktop_preferences,
-				    NEMO_PREFERENCES_DESKTOP_VOLUMES_VISIBLE)) {
+	if ((!g_mount_is_shadowed (mount)) && mount_kind_visible (mount)) {
 		link = nemo_desktop_link_new_from_mount (mount);
 		monitor->details->mount_links = g_list_prepend (monitor->details->mount_links, link);
 	}
@@ -316,7 +396,7 @@ desktop_computer_visible_changed (gpointer callback_data)
 	update_link_visibility (NEMO_DESKTOP_LINK_MONITOR (callback_data),
 				&monitor->details->computer_link,
 				NEMO_DESKTOP_LINK_COMPUTER,
-				NEMO_PREFERENCES_DESKTOP_COMPUTER_VISIBLE);
+				computer_visible_key ());
 }
 
 static void
@@ -353,21 +433,17 @@ desktop_volumes_visible_changed (gpointer callback_data)
 
 	monitor = NEMO_DESKTOP_LINK_MONITOR (callback_data);
 
-	if (g_settings_get_boolean (nemo_desktop_preferences,
-				    NEMO_PREFERENCES_DESKTOP_VOLUMES_VISIBLE)) {
-		if (monitor->details->mount_links == NULL) {
-			mounts = g_volume_monitor_get_mounts (monitor->details->volume_monitor);
-			for (l = mounts; l != NULL; l = l->next) {
-				create_mount_link (monitor, l->data);
-				g_object_unref (l->data);
-			}
-			g_list_free (mounts);
-		}
-	} else {
-		g_list_foreach (monitor->details->mount_links, (GFunc)g_object_unref, NULL);
-		g_list_free (monitor->details->mount_links);
-		monitor->details->mount_links = NULL;
+	/* se rehacen los links de volúmenes según lo que esté visible ahora */
+	g_list_foreach (monitor->details->mount_links, (GFunc)g_object_unref, NULL);
+	g_list_free (monitor->details->mount_links);
+	monitor->details->mount_links = NULL;
+
+	mounts = g_volume_monitor_get_mounts (monitor->details->volume_monitor);
+	for (l = mounts; l != NULL; l = l->next) {
+		create_mount_link (monitor, l->data);
+		g_object_unref (l->data);
 	}
+	g_list_free (mounts);
 }
 
 static void
@@ -416,9 +492,14 @@ nemo_desktop_link_monitor_init (NemoDesktopLinkMonitor *monitor)
 
 	create_link_and_add_preference (&monitor->details->computer_link,
 					NEMO_DESKTOP_LINK_COMPUTER,
-					NEMO_PREFERENCES_DESKTOP_COMPUTER_VISIBLE,
+					computer_visible_key (),
 					G_CALLBACK (desktop_computer_visible_changed),
 					monitor);
+	g_signal_connect_swapped (nemo_desktop_preferences,
+				  "changed::" NEMO_PREFERENCES_DESKTOP_COMPUTER_VISIBLE,
+				  G_CALLBACK (desktop_computer_visible_changed), monitor);
+	g_signal_connect_swapped (nemo_desktop_preferences, "changed::finder-desktop-hard-disks",
+				  G_CALLBACK (desktop_computer_visible_changed), monitor);
 
 	create_link_and_add_preference (&monitor->details->trash_link,
 					NEMO_DESKTOP_LINK_TRASH,
@@ -446,6 +527,14 @@ nemo_desktop_link_monitor_init (NemoDesktopLinkMonitor *monitor)
 				  "changed::" NEMO_PREFERENCES_DESKTOP_VOLUMES_VISIBLE,
 				  G_CALLBACK (desktop_volumes_visible_changed),
 				  monitor);
+	g_signal_connect_swapped (nemo_desktop_preferences, "changed::finder-desktop-hard-disks",
+				  G_CALLBACK (desktop_volumes_visible_changed), monitor);
+	g_signal_connect_swapped (nemo_desktop_preferences, "changed::finder-desktop-external-disks",
+				  G_CALLBACK (desktop_volumes_visible_changed), monitor);
+	g_signal_connect_swapped (nemo_desktop_preferences, "changed::finder-desktop-optical-disks",
+				  G_CALLBACK (desktop_volumes_visible_changed), monitor);
+	g_signal_connect_swapped (nemo_desktop_preferences, "changed::finder-desktop-servers",
+				  G_CALLBACK (desktop_volumes_visible_changed), monitor);
 
 	g_signal_connect_object (monitor->details->volume_monitor, "mount_added",
 				 G_CALLBACK (mount_added_callback), monitor, 0);

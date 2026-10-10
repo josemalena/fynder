@@ -123,10 +123,17 @@ nemo_desktop_link_new (NemoDesktopLinkType type)
 
 	case NEMO_DESKTOP_LINK_COMPUTER:
 		link->details->filename = g_strdup ("computer");
-		link->details->display_name = g_strdup (_("Computer"));
-		link->details->activation_location = g_file_new_for_uri ("computer:///");
-		/* TODO: This might need a different icon: */
-		link->details->icon = g_themed_icon_new (NEMO_ICON_COMPUTER);
+		if (g_settings_get_boolean (nemo_desktop_preferences, "finder-columns-right-to-left")) {
+			/* como el escritorio de macOS: el disco de arranque lleva el nombre del equipo */
+			link->details->display_name = g_strdup (g_get_host_name ());
+			link->details->activation_location = g_file_new_for_path ("/");
+			link->details->icon = g_themed_icon_new ("drive-harddisk");
+		} else {
+			link->details->display_name = g_strdup (_("Computer"));
+			link->details->activation_location = g_file_new_for_uri ("computer:///");
+			/* TODO: This might need a different icon: */
+			link->details->icon = g_themed_icon_new (NEMO_ICON_COMPUTER);
+		}
 
 		break;
 

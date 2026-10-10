@@ -82,6 +82,16 @@ bound_check (const char *label,
 	return check;
 }
 
+static GtkWidget *
+bound_desktop_check (const char *label,
+                     const char *key)
+{
+	GtkWidget *check = gtk_check_button_new_with_label (label);
+
+	g_settings_bind (nemo_desktop_preferences, key, check, "active", G_SETTINGS_BIND_DEFAULT);
+	return check;
+}
+
 /* ---------- General ---------- */
 
 static GtkWidget *
@@ -101,6 +111,13 @@ build_general_page (void)
 	gtk_box_pack_start (GTK_BOX (row), gtk_label_new (_("New Fynder windows show:")), FALSE, FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (row), combo, FALSE, FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (box), row, FALSE, FALSE, 0);
+
+	gtk_box_pack_start (GTK_BOX (box), section_label (_("Show these items on the desktop:")), FALSE, FALSE, 4);
+	gtk_box_pack_start (GTK_BOX (box), bound_desktop_check (_("Hard disks"), "finder-desktop-hard-disks"), FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (box), bound_desktop_check (_("External disks"), "finder-desktop-external-disks"), FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (box), bound_desktop_check (_("CDs and DVDs"), "finder-desktop-optical-disks"), FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (box), bound_desktop_check (_("Connected servers"), "finder-desktop-servers"), FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (box), gtk_separator_new (GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 6);
 
 	gtk_box_pack_start (GTK_BOX (box), bound_check (_("Open folders in tabs instead of new windows"),
 	                                                NEMO_PREFERENCES_FINDER_OPEN_IN_TABS),
