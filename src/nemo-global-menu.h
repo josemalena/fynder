@@ -1,6 +1,6 @@
 /* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 8; tab-width: 8 -*-
  *
- * Menú global: publica la barra de menú de Nemo Mac (File, Edit, View, Go,
+ * Menú global: publica la barra de menú de Fynder (File, Edit, View, Go,
  * Bookmarks, Help) por el protocolo estándar de GTK (GMenuModel y
  * GActionGroup sobre D-Bus), para que un panel como el de Cinnamon la
  * muestre arriba, como en macOS.

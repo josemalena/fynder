@@ -1,6 +1,6 @@
 /* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 8; tab-width: 8 -*-
  *
- * Atajos de teclado estilo Finder (Command = Super) para Nemo Mac.
+ * Atajos de teclado estilo Finder (Command = Super) para Fynder.
  */
 
 #ifndef NEMO_FINDER_SHORTCUTS_H

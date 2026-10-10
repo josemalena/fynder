@@ -309,16 +309,16 @@ action_about_nemo_callback (GtkAction *action,
 				gpointer user_data)
 {
 	const gchar *license[] = {
-		N_("Nemo Finder is free software; you can redistribute it and/or modify "
+		N_("Fynder is free software; you can redistribute it and/or modify "
 		   "it under the terms of the GNU General Public License as published by "
 		   "the Free Software Foundation; either version 2 of the License, or "
 		   "(at your option) any later version."),
-		N_("Nemo Finder is distributed in the hope that it will be useful, "
+		N_("Fynder is distributed in the hope that it will be useful, "
 		   "but WITHOUT ANY WARRANTY; without even the implied warranty of "
 		   "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the "
 		   "GNU General Public License for more details."),
 		N_("You should have received a copy of the GNU General Public License "
-		   "along with Nemo Finder; if not, write to the Free Software Foundation, Inc., "
+		   "along with Fynder; if not, write to the Free Software Foundation, Inc., "
 		   "51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA")
 	};
 	gchar *license_trans;
@@ -330,11 +330,12 @@ action_about_nemo_callback (GtkAction *action,
 	date = g_date_time_new_now_local ();
 
 	gtk_show_about_dialog (GTK_WINDOW (user_data),
-			       "program-name", _("Nemo Finder"),
+			       "program-name", _("Fynder"),
 			       "version", VERSION,
-			       "comments", _("Nemo Finder lets you organize "
+			       "comments", _("Fynder lets you organize "
 					     "files and folders, both on "
-					     "your computer and online."),
+					     "your computer and online.\n\n"
+					     "Based on Nemo, from the Linux Mint project."),
 			       "license", license_trans,
 			       "wrap-license", TRUE,
 			      "logo-icon-name", "folder",
@@ -1392,7 +1393,7 @@ static const GtkActionEntry main_entries[] = {
                                  G_CALLBACK (action_close_window_slot_callback) },
                                { "Preferences", "xsi-toolbox-symbolic",
                                  N_("Prefere_nces"),
-                                 NULL, N_("Edit Nemo Finder preferences"),
+                                 NULL, N_("Edit Fynder preferences"),
                                  G_CALLBACK (action_preferences_callback) },
 #ifdef TEXT_CHANGE_UNDO
   /* name, stock id, label */  { "Undo", NULL, N_("_Undo"),
@@ -1415,7 +1416,7 @@ static const GtkActionEntry main_entries[] = {
                                  G_CALLBACK (action_reload_callback) },
   /* name, stock id */         { "NemoHelp", "xsi-help-contents-symbolic",
   /* label, accelerator */       N_("_All Topics"), "F1",
-  /* tooltip */                  N_("Display Nemo Finder help"),
+  /* tooltip */                  N_("Display Fynder help"),
                                  G_CALLBACK (action_nemo_manual_callback) },
                                { "NemoShortcuts", "xsi-keyboard-shortcuts-symbolic",
                                  N_("_Keyboard Shortcuts"), "<control>F1",
@@ -1493,7 +1494,7 @@ static const GtkActionEntry main_entries[] = {
   /* name, stock id, label */  { "Bookmarks", NULL, N_("_Bookmarks") },
   /* name, stock id, label */  { "Tabs", NULL, N_("_Tabs") },
   /* name, stock id, label */  { "New Window", NULL, N_("New _Window"),
-                                 "<control>N", N_("Open another Nemo Finder window for the displayed location"),
+                                 "<control>N", N_("Open another Fynder window for the displayed location"),
                                  G_CALLBACK (action_new_window_callback) },
   /* name, stock id, label */  { "New Tab", "xsi-tab-new-symbolic", N_("New _Tab"),
                                  "<control>T", N_("Open another tab for the displayed location"),

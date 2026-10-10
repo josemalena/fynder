@@ -315,7 +315,7 @@
     <key name="claim-filemanager1" type="b">
       <default>false</default>
       <summary>Claim the FileManager1 D-Bus service</summary>
-      <description>When enabled, Nemo Mac tries to provide org.freedesktop.FileManager1. Leave disabled while Nemo is the default file manager.</description>
+      <description>When enabled, Fynder tries to provide org.freedesktop.FileManager1. Leave disabled while Nemo is the default file manager.</description>
     </key>
     <key name="toolbar-linked-view-switcher" type="b">
       <default>true</default>

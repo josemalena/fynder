@@ -1,6 +1,6 @@
 /* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 8; tab-width: 8 -*-
  *
- * Atajos de teclado estilo Finder (Command = Super) para Nemo Mac.
+ * Atajos de teclado estilo Finder (Command = Super) para Fynder.
  *
  * Se atienden desde nemo_window_key_press_event, después de que la ventana
  * haya dejado pasar los campos de texto y el renombrado en curso. Los atajos

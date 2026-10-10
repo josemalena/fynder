@@ -1775,10 +1775,10 @@ display_view_selection_failure (NemoWindow *window, NemoFile *file,
 			error_message = g_strdup_printf (_("Could not display \"%s\"."),
 							 uri_for_display);
 			if (scheme_string != NULL) {
-				detail_message = g_strdup_printf (_("Nemo Finder cannot handle \"%s\" locations."),
+				detail_message = g_strdup_printf (_("Fynder cannot handle \"%s\" locations."),
 								  scheme_string);
 			} else {
-				detail_message = g_strdup (_("Nemo Finder cannot handle this kind of location."));
+				detail_message = g_strdup (_("Fynder cannot handle this kind of location."));
 			}
 			g_free (scheme_string);
 			break;

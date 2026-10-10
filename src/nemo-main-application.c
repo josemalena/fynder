@@ -900,7 +900,7 @@ nemo_main_application_local_command_line (GApplication *application,
         { "debug", 0, 0, G_OPTION_ARG_NONE, &debug,
           "Enable debugging code.  Example usage: 'NEMO_DEBUG=Actions,Window nemo --debug'.  Use NEMO_DEBUG=help for more topics.", NULL },
 		{ "quit", 'q', 0, G_OPTION_ARG_NONE, &kill_shell, 
-		  N_("Quit Nemo Finder."), NULL },
+		  N_("Quit Fynder."), NULL },
 		{ G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_STRING_ARRAY, &remaining, NULL,  N_("[URI...]") },
 
 		{ NULL }
@@ -1109,7 +1109,7 @@ menu_state_changed_callback (NemoMainApplication *self)
                                          GTK_DIALOG_MODAL,
                                          GTK_MESSAGE_INFO,
                                          GTK_BUTTONS_OK,
-                                         _("Nemo Finder's main menu is now hidden"));
+                                         _("Fynder's main menu is now hidden"));
 
         gchar *secondary;
         secondary = g_strdup_printf (_("You have chosen to hide the main menu.  You can get it back temporarily by:\n\n"
