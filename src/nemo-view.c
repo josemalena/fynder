@@ -34,6 +34,7 @@
 #include "nemo-actions.h"
 #include "nemo-desktop-icon-view.h"
 #include "nemo-error-reporting.h"
+#include "nemo-finder-file-actions.h"
 #include "nemo-list-view.h"
 #include "nemo-mime-actions.h"
 #include "nemo-previewer.h"
@@ -2174,6 +2175,51 @@ action_new_empty_file_callback (GtkAction *action,
         g_assert (NEMO_IS_VIEW (callback_data));
 
 	nemo_view_new_file (NEMO_VIEW (callback_data), NULL, NULL);
+}
+
+static GList *
+local_selection (NemoView *view)
+{
+	GList *selection = nemo_view_get_selection (view);
+	GList *l, *local = NULL;
+
+	for (l = selection; l != NULL; l = l->next) {
+		if (nemo_file_is_local (NEMO_FILE (l->data)))
+			local = g_list_prepend (local, nemo_file_ref (NEMO_FILE (l->data)));
+	}
+	nemo_file_list_free (selection);
+	return g_list_reverse (local);
+}
+
+static void
+action_compress_callback (GtkAction *action,
+			  gpointer callback_data)
+{
+	GList *files = local_selection (NEMO_VIEW (callback_data));
+
+	nemo_finder_compress_files (files);
+	nemo_file_list_free (files);
+}
+
+static void
+action_burn_callback (GtkAction *action,
+		      gpointer callback_data)
+{
+	GList *files = local_selection (NEMO_VIEW (callback_data));
+
+	nemo_finder_burn_files (files);
+	nemo_file_list_free (files);
+}
+
+static void
+action_add_to_dock_callback (GtkAction *action,
+			     gpointer callback_data)
+{
+	GList *files = local_selection (NEMO_VIEW (callback_data));
+
+	if (files != NULL && files->next == NULL && nemo_file_is_directory (NEMO_FILE (files->data)))
+		nemo_finder_add_to_dock (NEMO_FILE (files->data));
+	nemo_file_list_free (files);
 }
 
 static void
@@ -8352,6 +8398,18 @@ static const GtkActionEntry directory_view_entries[] = {
   /* label, accelerator */       N_("_Quick Look"), NULL,
   /* tooltip */                  N_("Preview the selected item"),
 				 G_CALLBACK (action_quick_look_callback) },
+  /* name, stock id */         { "Compress", NULL,
+  /* label, accelerator */       N_("Compress"), NULL,
+  /* tooltip */                  N_("Create a ZIP archive with the selected items"),
+				 G_CALLBACK (action_compress_callback) },
+  /* name, stock id */         { "Burn to Disc", NULL,
+  /* label, accelerator */       N_("Burn to Disc…"), NULL,
+  /* tooltip */                  N_("Burn the selected items to a disc"),
+				 G_CALLBACK (action_burn_callback) },
+  /* name, stock id */         { "Add to Dock", NULL,
+  /* label, accelerator */       N_("Add to Dock"), NULL,
+  /* tooltip */                  N_("Add the selected folder to the Dock"),
+				 G_CALLBACK (action_add_to_dock_callback) },
   /* name, stock id */         { "PropertiesAccel", NULL,
   /* label, accelerator */       "PropertiesAccel", "<control>I",
   /* tooltip */                  NULL,
@@ -10042,6 +10100,45 @@ real_update_menus (NemoView *view)
 	action = gtk_action_group_get_action (view->details->dir_action_group, "Quick Look");
 	gtk_action_set_sensitive (action, selection_count > 0);
 	gtk_action_set_visible (action, selection_count > 0);
+
+	/* Compress, Burn to Disc y Add to Dock: solo en el layout Finder, con la
+	 * herramienta instalada y la selección en disco local */
+	{
+		gboolean finder = g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT);
+		GList *local = (finder && selection_count > 0) ? local_selection (view) : NULL;
+		gboolean all_local = local != NULL && (int) g_list_length (local) == selection_count;
+		char *name = NULL;
+		char *label;
+
+		if (all_local && local->next == NULL)
+			name = nemo_file_get_display_name (NEMO_FILE (local->data));
+
+		action = gtk_action_group_get_action (view->details->dir_action_group, "Compress");
+		if (name != NULL)
+			label = g_strdup_printf (_("Compress “%s”"), name);
+		else
+			label = g_strdup_printf (ngettext ("Compress %d Item", "Compress %d Items", selection_count), selection_count);
+		g_object_set (action, "label", label, NULL);
+		g_free (label);
+		gtk_action_set_visible (action, all_local && !selection_contains_recent && nemo_finder_can_compress ());
+
+		action = gtk_action_group_get_action (view->details->dir_action_group, "Burn to Disc");
+		if (name != NULL)
+			label = g_strdup_printf (_("Burn “%s” to Disc…"), name);
+		else
+			label = g_strdup (_("Burn to Disc…"));
+		g_object_set (action, "label", label, NULL);
+		g_free (label);
+		gtk_action_set_visible (action, all_local && !selection_contains_recent && nemo_finder_can_burn ());
+
+		action = gtk_action_group_get_action (view->details->dir_action_group, "Add to Dock");
+		gtk_action_set_visible (action, all_local && local->next == NULL &&
+					nemo_file_is_directory (NEMO_FILE (local->data)) &&
+					nemo_finder_can_add_to_dock ());
+
+		g_free (name);
+		nemo_file_list_free (local);
+	}
 
 	action = gtk_action_group_get_action (view->details->dir_action_group,
 					      NEMO_ACTION_EMPTY_TRASH);

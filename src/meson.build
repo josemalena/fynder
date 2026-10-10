@@ -61,6 +61,7 @@ nemoCommon_sources = [
   'nemo-query-editor.c',
   'nemo-template-config-widget.c',
   'nemo-finder-path-bar.c',
+  'nemo-finder-file-actions.c',
   'nemo-finder-preferences.c',
   'nemo-finder-shortcuts.c',
   'nemo-finder-view-options.c',

@@ -183,6 +183,10 @@
 		<menuitem name="Duplicate" action="Duplicate"/>
 		<menuitem name="Create Link" action="Create Link"/>
 		<menuitem name="Quick Look" action="Quick Look"/>
+		<separator name="Finder extras separator"/>
+		<menuitem name="Compress" action="Compress"/>
+		<menuitem name="Burn to Disc" action="Burn to Disc"/>
+		<menuitem name="Add to Dock" action="Add to Dock"/>
 	</placeholder>
 	<separator name="Clipboard separator"/>
 	<placeholder name="File Clipboard Actions">
