@@ -46,6 +46,7 @@ typedef struct {
 /* Modelo compartido por toda la aplicación */
 static GMenu *shared_menu = NULL;
 static GtkApplication *shared_app = NULL;
+static char *shared_signature = NULL;
 
 static void schedule_rebuild (GlobalMenu *gm);
 
@@ -315,6 +316,48 @@ fill_from_shell (GlobalMenu *gm,
 	g_list_free (children);
 }
 
+/* Firma textual de un modelo (etiquetas, acciones, atajos y estructura). Sirve
+ * para no tocar el modelo compartido si su contenido no cambió: cada cambio
+ * obliga a quien lo escucha a volver a suscribirse a los grupos de submenús. */
+static void
+append_signature (GMenuModel *model,
+                  GString *out)
+{
+	gint i, n = g_menu_model_get_n_items (model);
+
+	g_string_append_c (out, '(');
+	for (i = 0; i < n; i++) {
+		GMenuModel *link;
+		GVariant *value;
+		const gchar *attrs[] = { G_MENU_ATTRIBUTE_LABEL, G_MENU_ATTRIBUTE_ACTION, "accel", NULL };
+		gint a;
+
+		for (a = 0; attrs[a] != NULL; a++) {
+			value = g_menu_model_get_item_attribute_value (model, i, attrs[a], G_VARIANT_TYPE_STRING);
+			if (value != NULL) {
+				g_string_append (out, g_variant_get_string (value, NULL));
+				g_variant_unref (value);
+			}
+			g_string_append_c (out, '\x1f');
+		}
+
+		link = g_menu_model_get_item_link (model, i, G_MENU_LINK_SUBMENU);
+		if (link != NULL) {
+			g_string_append_c (out, 'S');
+			append_signature (link, out);
+			g_object_unref (link);
+		}
+		link = g_menu_model_get_item_link (model, i, G_MENU_LINK_SECTION);
+		if (link != NULL) {
+			g_string_append_c (out, 'N');
+			append_signature (link, out);
+			g_object_unref (link);
+		}
+		g_string_append_c (out, '\x1e');
+	}
+	g_string_append_c (out, ')');
+}
+
 static gboolean
 window_owns_model (GlobalMenu *gm)
 {
@@ -359,6 +402,18 @@ rebuild_now (GlobalMenu *gm)
 
 	if (shared_menu != NULL && window_owns_model (gm)) {
 		guint i, n = g_menu_model_get_n_items (G_MENU_MODEL (fresh));
+		GString *signature = g_string_new (NULL);
+
+		append_signature (G_MENU_MODEL (fresh), signature);
+		if (g_strcmp0 (shared_signature, signature->str) == 0) {
+			/* mismo contenido: las acciones ya se actualizaron, el modelo se queda */
+			g_string_free (signature, TRUE);
+			g_object_unref (fresh);
+			g_hash_table_unref (used);
+			return;
+		}
+		g_free (shared_signature);
+		shared_signature = g_string_free (signature, FALSE);
 
 		g_menu_remove_all (shared_menu);
 		for (i = 0; i < n; i++) {
@@ -478,6 +533,7 @@ sync_publication (GlobalMenu *gm)
 		if (shared_menu != NULL && shared_app == app) {
 			gtk_application_set_menubar (app, NULL);
 			g_clear_object (&shared_menu);
+			g_clear_pointer (&shared_signature, g_free);
 			shared_app = NULL;
 		}
 		nemo_window_sync_menu_bar (gm->window);
