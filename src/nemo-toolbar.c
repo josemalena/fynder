@@ -376,6 +376,55 @@ search_entry_changed_cb (GtkSearchEntry *entry,
                    gtk_entry_get_text (GTK_ENTRY (entry)));
 }
 
+/* En el layout Finder los botones usan los glifos del Finder (sin el prefijo
+ * xsi-, que cae en el tema base: p. ej. 4 cuadritos en vez de 6 para iconos).
+ * Con el layout apagado vuelven al icono de su acción. */
+static void
+toolbar_set_finder_icon (GtkWidget *widget,
+                         const gchar *finder_icon,
+                         gboolean finder_layout)
+{
+    GtkButton *button;
+    GtkActivatable *activatable;
+    GtkWidget *image;
+
+    if (widget == NULL)
+        return;
+
+    button = GTK_BUTTON (widget);
+    activatable = GTK_ACTIVATABLE (widget);
+    image = gtk_button_get_image (button);
+
+    gtk_activatable_set_use_action_appearance (activatable, !finder_layout);
+
+    if (finder_layout && GTK_IS_IMAGE (image)) {
+        GtkIconSize size = GTK_ICON_SIZE_SMALL_TOOLBAR;
+
+        g_object_get (image, "icon-size", &size, NULL);
+        gtk_image_set_from_icon_name (GTK_IMAGE (image), finder_icon, size);
+    } else if (!finder_layout) {
+        gtk_activatable_sync_action_properties (activatable,
+                                                gtk_activatable_get_related_action (activatable));
+    }
+}
+
+static void
+toolbar_apply_finder_icons (NemoToolbar *self,
+                            gboolean finder_layout)
+{
+    toolbar_set_finder_icon (self->priv->previous_button, "go-previous-symbolic", finder_layout);
+    toolbar_set_finder_icon (self->priv->next_button, "go-next-symbolic", finder_layout);
+    toolbar_set_finder_icon (self->priv->refresh_button, "view-refresh-symbolic", finder_layout);
+    toolbar_set_finder_icon (self->priv->home_button, "user-home-symbolic", finder_layout);
+    toolbar_set_finder_icon (self->priv->computer_button, "computer-symbolic", finder_layout);
+    toolbar_set_finder_icon (self->priv->new_folder_button, "folder-new-symbolic", finder_layout);
+    toolbar_set_finder_icon (self->priv->search_button, "edit-find-symbolic", finder_layout);
+    toolbar_set_finder_icon (self->priv->icon_view_button, "view-grid-symbolic", finder_layout);
+    toolbar_set_finder_icon (self->priv->list_view_button, "view-list-symbolic", finder_layout);
+    toolbar_set_finder_icon (self->priv->compact_view_button, "view-column-symbolic", finder_layout);
+    toolbar_set_finder_icon (self->priv->show_extra_pane_button, "view-dual-symbolic", finder_layout);
+}
+
 static void
 toolbar_update_appearance (NemoToolbar *self)
 {
@@ -506,22 +555,7 @@ toolbar_update_appearance (NemoToolbar *self)
         gtk_style_context_remove_class (gtk_widget_get_style_context (self->priv->navigation_box), "linked");
     }
 
-    /* En el layout Finder la vista compacta lleva el glifo de columnas del Finder. */
-    {
-        GtkButton *compact = GTK_BUTTON (self->priv->compact_view_button);
-        GtkActivatable *activatable = GTK_ACTIVATABLE (compact);
-
-        gtk_activatable_set_use_action_appearance (activatable, !finder_layout);
-        if (finder_layout) {
-            gtk_button_set_image (compact,
-                                  gtk_image_new_from_icon_name ("view-column-symbolic",
-                                                                GTK_ICON_SIZE_SMALL_TOOLBAR));
-            gtk_button_set_always_show_image (compact, TRUE);
-        } else {
-            gtk_activatable_sync_action_properties (activatable,
-                                                    gtk_activatable_get_related_action (activatable));
-        }
-    }
+    toolbar_apply_finder_icons (self, finder_layout);
 
     /* Con el layout Finder el breadcrumb no va en el toolbar: la ruta vive en la
      * Path Bar sobre la statusbar. Solo se muestra aquí la entrada de ubicación. */
