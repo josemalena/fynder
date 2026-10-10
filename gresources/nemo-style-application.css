@@ -143,23 +143,39 @@ NemoDesktopWindow GtkPaned {
     min-width: 34px;
 }
 
-/* búsqueda: 323 × 22 px (el tema le pone un borde de 3 px: 16 + 6 = 22) */
+/* búsqueda: 323 × 22 px, sin borde (el tema le pone uno de 3 px con imagen),
+ * esquinas de 5 px y un relleno MÁS CLARO que la barra, como el Finder */
 .nemo-finder-toolbar entry {
-    min-height: 16px;
-    padding-top: 0;
-    padding-bottom: 0;
+    min-height: 22px;
+    padding: 0 5px 0 3px;       /* lupa a 5 px del borde y texto a 21 px */
     margin: 0;
     font-size: 13px;
-    border-radius: 6px;
-    background-color: #2f302d;
-    background-image: none;
-    border-color: #292a28;
-    color: #f1f1ed;
-    caret-color: #f1f1ed;
+    border: none;
+    border-image: none;
+    border-radius: 5px;
+    box-shadow: none;
+    outline: none;
+    background-color: #6d6e6a;
+    background-image: linear-gradient(to bottom, #717270, #6a6b67);
+    color: #ffffff;
+    caret-color: #ffffff;
+}
+
+.nemo-finder-toolbar entry image {
+    margin: 0;
+}
+
+.nemo-finder-toolbar entry text {
+    margin-left: -10px;
+}
+
+.nemo-finder-toolbar entry placeholder,
+.nemo-finder-toolbar entry text placeholder {
+    color: #c4c5c0;
 }
 
 .nemo-finder-toolbar entry:focus {
-    border-color: #73746f;
+    box-shadow: 0 0 0 1px #8b8c87;
 }
 
 /* Finder Path Bar: franja encima de la statusbar (finder-show-path-bar). */
