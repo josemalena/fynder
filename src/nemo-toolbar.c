@@ -329,25 +329,19 @@ static const gchar *action_menu_entries[] = {
     NEMO_ACTION_SHOW_HIDDEN_FILES,
 };
 
-static void
-action_button_clicked_cb (GtkButton *button,
-                          NemoToolbar *self)
+/* Menú de acciones del elemento seleccionado, armado en el momento con las
+ * acciones de la vista activa. NULL si no hay nada que ofrecer. */
+static GtkWidget *
+toolbar_build_action_menu (NemoToolbar *self)
 {
+    GtkWidget *menu = gtk_menu_new ();
     gboolean need_separator = FALSE, has_items = FALSE;
     guint i;
 
-    if (self->priv->action_menu != NULL) {
-        gtk_widget_destroy (self->priv->action_menu);
-        g_clear_object (&self->priv->action_menu);
-    }
-
-    /* Se arma en cada clic para reflejar la vista y la selección actuales. */
-    self->priv->action_menu = gtk_menu_new ();
-    g_object_ref_sink (self->priv->action_menu);
+    g_object_ref_sink (menu);
 
     for (i = 0; i < G_N_ELEMENTS (action_menu_entries); i++) {
         GtkAction *action;
-        GtkWidget *item;
 
         if (action_menu_entries[i] == NULL) {
             need_separator = has_items;
@@ -359,21 +353,107 @@ action_button_clicked_cb (GtkButton *button,
             continue;
 
         if (need_separator) {
-            gtk_menu_shell_append (GTK_MENU_SHELL (self->priv->action_menu),
-                                   gtk_separator_menu_item_new ());
+            gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_separator_menu_item_new ());
             need_separator = FALSE;
         }
 
-        item = gtk_action_create_menu_item (action);
-        gtk_menu_shell_append (GTK_MENU_SHELL (self->priv->action_menu), item);
+        gtk_menu_shell_append (GTK_MENU_SHELL (menu), gtk_action_create_menu_item (action));
         has_items = TRUE;
     }
 
-    if (!has_items)
-        return;
+    if (!has_items) {
+        gtk_widget_destroy (menu);
+        g_object_unref (menu);
+        return NULL;
+    }
 
-    gtk_widget_show_all (self->priv->action_menu);
-    toolbar_popup_menu_at_button (self->priv->action_menu, GTK_WIDGET (button));
+    gtk_widget_show_all (menu);
+    return menu;
+}
+
+static void
+action_button_clicked_cb (GtkButton *button,
+                          NemoToolbar *self)
+{
+    if (self->priv->action_menu != NULL) {
+        gtk_widget_destroy (self->priv->action_menu);
+        g_clear_object (&self->priv->action_menu);
+    }
+
+    /* Se arma en cada clic para reflejar la vista y la selección actuales. */
+    self->priv->action_menu = toolbar_build_action_menu (self);
+
+    if (self->priv->action_menu != NULL)
+        toolbar_popup_menu_at_button (self->priv->action_menu, GTK_WIDGET (button));
+}
+
+/* Entradas del menú de desbordamiento «»»: cuando el toolbar es angosto y un
+ * item no cabe, el GtkToolbar lo oculta y pide un «proxy» para listarlo ahí. */
+static void
+proxy_button_activate_cb (GtkMenuItem *menu_item,
+                          GtkWidget *button)
+{
+    gtk_button_clicked (GTK_BUTTON (button));
+}
+
+static void
+proxy_search_activate_cb (GtkMenuItem *menu_item,
+                          NemoToolbar *self)
+{
+    GtkAction *action = toolbar_find_action (self, NEMO_ACTION_SEARCH);
+
+    if (action != NULL)
+        gtk_action_activate (action);
+}
+
+static gboolean
+toolbar_item_create_proxy_cb (GtkToolItem *item,
+                              NemoToolbar *self)
+{
+    GtkWidget *button = g_object_get_data (G_OBJECT (item), "nemo-finder-button");
+    GtkWidget *menu_item;
+
+    if (button == NULL)
+        return FALSE;
+
+    if (button == self->priv->action_button) {
+        GtkWidget *submenu = toolbar_build_action_menu (self);
+
+        menu_item = gtk_menu_item_new_with_label (_("Action"));
+        if (submenu != NULL) {
+            gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), submenu);
+            g_object_unref (submenu);
+        } else {
+            gtk_widget_set_sensitive (menu_item, FALSE);
+        }
+    } else if (GTK_IS_TOGGLE_BUTTON (button)) {
+        menu_item = gtk_check_menu_item_new_with_label (gtk_widget_get_tooltip_text (button));
+        gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_item),
+                                        gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (button)));
+        g_signal_connect (menu_item, "activate", G_CALLBACK (proxy_button_activate_cb), button);
+    } else {
+        menu_item = gtk_menu_item_new_with_label (gtk_widget_get_tooltip_text (button));
+        g_signal_connect (menu_item, "activate", G_CALLBACK (proxy_button_activate_cb), button);
+    }
+
+    if (button != self->priv->action_button)
+        gtk_widget_set_sensitive (menu_item, gtk_widget_get_sensitive (button));
+
+    gtk_tool_item_set_proxy_menu_item (item, "nemo-finder-proxy", menu_item);
+
+    return TRUE;
+}
+
+static gboolean
+toolbar_search_item_create_proxy_cb (GtkToolItem *item,
+                                     NemoToolbar *self)
+{
+    GtkWidget *menu_item = gtk_menu_item_new_with_label (_("Search"));
+
+    g_signal_connect (menu_item, "activate", G_CALLBACK (proxy_search_activate_cb), self);
+    gtk_tool_item_set_proxy_menu_item (item, "nemo-finder-proxy", menu_item);
+
+    return TRUE;
 }
 
 #define FINDER_SEARCH_WIDTH 323
@@ -832,6 +912,8 @@ toolbar_add_item (NemoToolbar *self,
 
     gtk_container_add (GTK_CONTAINER (item), button);
     gtk_container_add (GTK_CONTAINER (self->priv->toolbar), GTK_WIDGET (item));
+    g_object_set_data (G_OBJECT (item), "nemo-finder-button", button);
+    g_signal_connect (item, "create-menu-proxy", G_CALLBACK (toolbar_item_create_proxy_cb), self);
     /* el item se ve cuando se ve su botón (la visibilidad la decide el layout) */
     g_object_bind_property (button, "visible", item, "visible", G_BINDING_SYNC_CREATE);
 
@@ -1019,6 +1101,8 @@ nemo_toolbar_constructed (GObject *obj)
                             G_CALLBACK (search_entry_grab_focus_cb), self);
     gtk_container_add (GTK_CONTAINER (tool_box), self->priv->search_entry);
     gtk_container_add (GTK_CONTAINER (self->priv->toolbar), GTK_WIDGET (tool_box));
+    g_signal_connect (tool_box, "create-menu-proxy",
+                      G_CALLBACK (toolbar_search_item_create_proxy_cb), self);
     gtk_widget_show_all (GTK_WIDGET (tool_box));
     gtk_widget_set_margin_left (GTK_WIDGET (tool_box), 6);
 
