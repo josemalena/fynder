@@ -2177,6 +2177,26 @@ action_new_empty_file_callback (GtkAction *action,
 }
 
 static void
+action_quick_look_callback (GtkAction *action,
+			    gpointer callback_data)
+{
+	NemoView *view;
+	GList *selection;
+
+	g_assert (NEMO_IS_VIEW (callback_data));
+
+	view = NEMO_VIEW (callback_data);
+	selection = nemo_view_get_selection (view);
+
+	if (selection != NULL) {
+		/* igual que la barra espaciadora: se muestra el primer elemento */
+		nemo_view_preview_files (view, selection, NULL);
+	}
+
+	nemo_file_list_free (selection);
+}
+
+static void
 action_properties_callback (GtkAction *action,
 			    gpointer callback_data)
 {
@@ -8313,6 +8333,10 @@ static const GtkActionEntry directory_view_entries[] = {
   /* label, accelerator */       N_("_Properties"), "<alt>Return",
   /* tooltip */                  N_("View or modify the properties of each selected item"),
 				 G_CALLBACK (action_properties_callback) },
+  /* name, stock id */         { "Quick Look", NULL,
+  /* label, accelerator */       N_("_Quick Look"), NULL,
+  /* tooltip */                  N_("Preview the selected item"),
+				 G_CALLBACK (action_quick_look_callback) },
   /* name, stock id */         { "PropertiesAccel", NULL,
   /* label, accelerator */       "PropertiesAccel", "<control>I",
   /* tooltip */                  NULL,
@@ -9994,6 +10018,11 @@ real_update_menus (NemoView *view)
 					      NEMO_ACTION_PROPERTIES_ACCEL);
 
 	gtk_action_set_sensitive (action, show_properties);
+
+	/* Quick Look: solo con algo seleccionado (y sin papelera vacía de contenido) */
+	action = gtk_action_group_get_action (view->details->dir_action_group, "Quick Look");
+	gtk_action_set_sensitive (action, selection_count > 0);
+	gtk_action_set_visible (action, selection_count > 0);
 
 	action = gtk_action_group_get_action (view->details->dir_action_group,
 					      NEMO_ACTION_EMPTY_TRASH);

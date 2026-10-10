@@ -39,6 +39,9 @@ static const FinderShortcut shortcuts[] = {
 	{ GDK_KEY_BackSpace,    CMD | SHIFT, NEMO_ACTION_EMPTY_TRASH, FALSE },
 	{ GDK_KEY_Delete,       CMD | SHIFT, NEMO_ACTION_EMPTY_TRASH, FALSE },
 
+	/* Quick Look */
+	{ GDK_KEY_y,            CMD,         "Quick Look", FALSE },
+
 	/* Abrir, propiedades (Get Info), carpeta nueva */
 	{ GDK_KEY_o,            CMD,         NEMO_ACTION_OPEN, FALSE },
 	{ GDK_KEY_Down,         CMD,         NEMO_ACTION_OPEN, FALSE },
@@ -252,6 +255,12 @@ nemo_finder_shortcuts_handle (NemoWindow *window,
 
 		return TRUE;
 	}
+
+	/* ⌘ llega como Ctrl o como Super según la tecla: con keyd, ⌘+letra sale como
+	 * Ctrl+letra y las teclas sin regla (⌘1…4, ⌘[ ], ⌘Espacio…) como Super. Fuera
+	 * de los campos de texto se tratan igual. */
+	if ((mods & (GDK_CONTROL_MASK | GDK_SUPER_MASK)) != 0)
+		mods = (mods & ~(GDK_CONTROL_MASK | GDK_SUPER_MASK)) | CMD;
 
 	slot = nemo_window_get_active_slot (window);
 	view = (slot != NULL) ? slot->content_view : NULL;
