@@ -66,6 +66,8 @@ struct _NemoToolbarPriv {
     GtkWidget *delete_button;
     GtkWidget *sidebar_button;
     GtkWidget *path_button;
+    guint layout_idle_id;       /* reparto pendiente (fuera de size-allocate) */
+    gint last_width;            /* último ancho recibido del toolbar */
     GtkWidget *left_item;       /* GtkToolItem de ‹ › */
     GtkWidget *right_item;      /* GtkToolItem de la caja derecha */
     GtkWidget *right_box;
@@ -135,7 +137,7 @@ nemo_toolbar_update_root_state (NemoToolbar *self)
  * búsqueda (hasta SEARCH_MIN) antes de que algo caiga al desbordamiento. */
 #define FINDER_GAP_FLOOR 8
 #define FINDER_SEARCH_MIN 140
-#define FINDER_TOOLBAR_SLACK 16
+#define FINDER_TOOLBAR_SLACK 64
 
 #define ARRANGE_ITEMS_PATH "/MenuBar/View/View Items Placeholder/Arrange Items"
 
@@ -479,6 +481,10 @@ toolbar_update_layout (NemoToolbar *self,
     if (self->priv->right_item == NULL || self->priv->left_item == NULL)
         return;
 
+    /* antes de la primera asignación real el ancho es 1: no hay nada que repartir */
+    if (width < 100)
+        return;
+
     if (!g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT)) {
         gtk_widget_set_margin_start (self->priv->right_item, 6);
         return;
@@ -510,12 +516,34 @@ toolbar_update_layout (NemoToolbar *self,
     gtk_widget_set_size_request (self->priv->search_entry, search_w, -1);
 }
 
+static gboolean
+toolbar_layout_idle_cb (gpointer data)
+{
+    NemoToolbar *self = data;
+
+    self->priv->layout_idle_id = 0;
+    toolbar_update_layout (self, self->priv->last_width);
+
+    return G_SOURCE_REMOVE;
+}
+
+/* Cambiar márgenes o tamaños dentro de size-allocate no sirve: GTK borra la
+ * marca de «hace falta otra asignación» al terminar de asignar, y el cambio
+ * queda una vuelta atrasado. Se difiere a un idle; ya con los valores nuevos
+ * llega otra asignación con el mismo ancho, el cálculo da lo mismo y se estabiliza. */
 static void
 toolbar_size_allocate_cb (GtkWidget *widget,
                           GdkRectangle *allocation,
                           NemoToolbar *self)
 {
-    toolbar_update_layout (self, allocation->width);
+    if (allocation->width < 100)
+        return;
+
+    self->priv->last_width = allocation->width;
+
+    if (self->priv->layout_idle_id == 0)
+        self->priv->layout_idle_id = g_idle_add_full (G_PRIORITY_HIGH_IDLE,
+                                                      toolbar_layout_idle_cb, self, NULL);
 }
 
 static void
@@ -563,7 +591,6 @@ toolbar_update_appearance (NemoToolbar *self)
      * visibilidad del botón con la de su acción y volvería a mostrar lo que
      * el layout oculta. La visibilidad se calcula después. */
     toolbar_apply_finder_icons (self, finder_layout);
-    toolbar_arrange_groups (self, finder_layout);
 
 	show_location_entry = self->priv->show_location_entry;
 
@@ -692,6 +719,9 @@ toolbar_update_appearance (NemoToolbar *self)
     gtk_widget_set_visible (self->priv->action_button, finder_layout);
     gtk_widget_set_visible (self->priv->search_item, finder_layout);
     toolbar_update_finder_buttons (self);
+
+    /* Al final: el reparto de ancho depende de qué botones quedaron visibles. */
+    toolbar_arrange_groups (self, finder_layout);
 }
 
 static void
@@ -975,6 +1005,8 @@ static void
 nemo_toolbar_dispose (GObject *obj)
 {
 	NemoToolbar *self = NEMO_TOOLBAR (obj);
+
+	g_clear_handle_id (&self->priv->layout_idle_id, g_source_remove);
 
 	g_clear_object (&self->priv->action_group);
 
