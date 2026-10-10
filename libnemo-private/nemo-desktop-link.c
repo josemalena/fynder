@@ -125,7 +125,8 @@ nemo_desktop_link_new (NemoDesktopLinkType type)
 		link->details->filename = g_strdup ("computer");
 		if (g_settings_get_boolean (nemo_desktop_preferences, "finder-columns-right-to-left")) {
 			/* como el escritorio de macOS: el disco de arranque lleva el nombre del equipo */
-			link->details->display_name = g_strdup (g_get_host_name ());
+			/* el mismo nombre que la barra de ruta y el lateral («Macintosh HD» o el que el usuario eligió) */
+			link->details->display_name = nemo_get_root_display_name ();
 			link->details->activation_location = g_file_new_for_path ("/");
 			link->details->icon = g_themed_icon_new ("drive-harddisk");
 		} else {

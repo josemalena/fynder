@@ -33,6 +33,7 @@
 
 #include "nemo-actions.h"
 #include "nemo-desktop-icon-view.h"
+#include "nemo-desktop-icon-grid-view.h"
 #include "nemo-error-reporting.h"
 #include "nemo-finder-file-actions.h"
 #include "nemo-list-view.h"
@@ -6585,6 +6586,12 @@ update_actions_menu (NemoView *view)
                       "ActionsGroup",
                       &view->details->actions_merge_id,
                       &view->details->actions_action_group);
+
+    /* el menú del escritorio estilo macOS no lleva las acciones de usuario de Nemo */
+    if (NEMO_IS_DESKTOP_ICON_GRID_VIEW (view) &&
+        g_settings_get_boolean (nemo_desktop_preferences, "finder-columns-right-to-left")) {
+        return;
+    }
 
     update_actions (view);
 }

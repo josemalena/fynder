@@ -943,7 +943,7 @@ real_update_menus (NemoView *view)
                                             "Desktop Sort By Menu", "Desktop Sort None",
                                             "Desktop Clean Up", "Desktop View Options", NULL };
         static const char *macos_hidden[] = { "Show Desktop Overlay", "OpenInTerminal", "OpenAsRoot",
-                                              "New Documents", "Show Hidden Files", NULL };
+                                              "New Documents", "Show Hidden Files", "Paste", NULL };
         gboolean macos = macos_desktop_menu ();
         gint k;
 
@@ -962,6 +962,61 @@ real_update_menus (NemoView *view)
                         gtk_action_set_visible (action, FALSE);
                 }
             }
+        }
+    }
+
+    /* del menú del fondo solo quedan dos separadores: el de antes de Get Info y el de
+     * antes de Sort By (los demás separan grupos que aquí no existen) */
+    if (macos_desktop_menu ()) {
+        GtkWidget *popup;
+
+        gtk_ui_manager_ensure_update (ui_manager);
+        popup = gtk_ui_manager_get_widget (ui_manager, "/background");
+
+        if (GTK_IS_MENU_SHELL (popup)) {
+            GList *children = gtk_container_get_children (GTK_CONTAINER (popup)), *c;
+
+            for (c = children; c != NULL; c = c->next) {
+                GList *next;
+                gboolean keep = FALSE;
+
+                if (!GTK_IS_SEPARATOR_MENU_ITEM (c->data))
+                    continue;
+
+                for (next = c->next; next != NULL; next = next->next) {
+                    if (GTK_IS_MENU_ITEM (next->data) && !GTK_IS_SEPARATOR_MENU_ITEM (next->data) &&
+                        gtk_widget_get_visible (next->data)) {
+                        const char *label = gtk_menu_item_get_label (GTK_MENU_ITEM (next->data));
+
+                        keep = g_strcmp0 (label, _("Get Info")) == 0 || g_strcmp0 (label, _("Sort By")) == 0;
+                        break;
+                    }
+                }
+                gtk_widget_set_no_show_all (c->data, TRUE);
+                gtk_widget_set_visible (c->data, keep);
+            }
+            g_list_free (children);
+
+            /* GtkUIManager no deja el separador de antes de Sort By: se pone a mano */
+            children = gtk_container_get_children (GTK_CONTAINER (popup));
+            for (c = children; c != NULL; c = c->next) {
+                if (GTK_IS_MENU_ITEM (c->data) && !GTK_IS_SEPARATOR_MENU_ITEM (c->data) &&
+                    g_strcmp0 (gtk_menu_item_get_label (c->data), _("Sort By")) == 0) {
+                    GList *prev = c->prev;
+                    gboolean has_sep = prev != NULL && GTK_IS_SEPARATOR_MENU_ITEM (prev->data) &&
+                                       gtk_widget_get_visible (prev->data);
+
+                    if (!has_sep) {
+                        GtkWidget *sep = gtk_separator_menu_item_new ();
+
+                        gtk_widget_show (sep);
+                        gtk_menu_shell_insert (GTK_MENU_SHELL (popup), sep,
+                                               g_list_position (children, c));
+                    }
+                    break;
+                }
+            }
+            g_list_free (children);
         }
     }
 

@@ -1043,6 +1043,31 @@ assign_icon_position (NemoIconContainer *container,
         if (have_stored_position) {
             nemo_icon_container_icon_set_position (container, icon, position.x, position.y);
             icon->saved_ltr_x = icon->x;
+        } else if (container->details->desktop_right_to_left &&
+                   get_sort_category (NEMO_FILE (icon->data)) == SORT_COMPUTER_LINK) {
+            /* como en macOS, el disco de arranque va primero, arriba a la derecha */
+            NemoCenteredPlacementGrid *grid = nemo_centered_placement_grid_new (container, FALSE);
+
+            if (grid == NULL) {
+                return FALSE;
+            }
+
+            {
+                GdkRectangle rect;
+                gint x, y;
+
+                nemo_centered_placement_grid_get_first_position_rect (grid, &rect);
+                nemo_centered_placement_grid_nominal_to_icon_position (grid, icon, rect.x, rect.y, &x, &y);
+                nemo_icon_container_icon_set_position (container, icon, x, y);
+                icon->saved_ltr_x = icon->x;
+                icon->has_lazy_position = FALSE;
+
+                position.x = icon->x;
+                position.y = icon->y;
+                position.monitor = nemo_desktop_utils_get_monitor_for_widget (GTK_WIDGET (container));
+                store_new_icon_position (container, icon, position);
+            }
+            nemo_centered_placement_grid_free (grid);
         } else {
             return FALSE;
         }

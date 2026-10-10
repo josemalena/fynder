@@ -15,6 +15,7 @@
 
 #include <glib/gi18n.h>
 #include <libnemo-private/nemo-global-preferences.h>
+#include <libnemo-private/nemo-icon-info.h>
 
 static GtkWidget *options_window = NULL;
 
@@ -27,6 +28,17 @@ static const struct {
 	{ "date_modified", N_("Date Modified") },
 	{ "size",          N_("Size") },
 };
+
+static void
+desktop_update_size_label (GtkRange *range)
+{
+	GtkWidget *label = g_object_get_data (G_OBJECT (range), "size-label");
+	int pixels = nemo_get_desktop_icon_size_for_zoom_level ((NemoZoomLevel) gtk_range_get_value (range));
+	char *text = g_strdup_printf ("%d × %d", pixels, pixels);
+
+	gtk_label_set_text (GTK_LABEL (label), text);
+	g_free (text);
+}
 
 static void
 zoom_value_changed_cb (GtkRange *range,
@@ -66,16 +78,30 @@ reverse_toggled_cb (GtkToggleButton *button,
 }
 
 static void
-desktop_text_size_changed_cb (GtkSpinButton *spin,
+desktop_text_size_changed_cb (GtkComboBox *combo,
                               gpointer user_data)
 {
-	PangoFontDescription *desc = g_object_get_data (G_OBJECT (spin), "font-desc");
+	PangoFontDescription *desc = g_object_get_data (G_OBJECT (combo), "font-desc");
+	const char *id = gtk_combo_box_get_active_id (combo);
 	char *font;
 
-	pango_font_description_set_size (desc, (int) gtk_spin_button_get_value (spin) * PANGO_SCALE);
+	if (id == NULL)
+		return;
+
+	pango_font_description_set_size (desc, atoi (id) * PANGO_SCALE);
 	font = pango_font_description_to_string (desc);
 	g_settings_set_string (nemo_desktop_preferences, "font", font);
 	g_free (font);
+}
+
+static void
+desktop_spacing_changed_cb (GtkRange *range,
+                            gpointer user_data)
+{
+	double value = gtk_range_get_value (range);
+
+	g_settings_set_double (nemo_desktop_preferences, "horizontal-grid-adjust", value);
+	g_settings_set_double (nemo_desktop_preferences, "vertical-grid-adjust", value);
 }
 
 static GtkWidget *
@@ -106,7 +132,8 @@ nemo_finder_view_options_show (NemoWindow *window)
 		gtk_widget_destroy (options_window);
 
 	options_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title (GTK_WINDOW (options_window), _("View Options"));
+	gtk_window_set_title (GTK_WINDOW (options_window),
+	                      NEMO_IS_DESKTOP_ICON_GRID_VIEW (view) ? _("Desktop") : _("View Options"));
 	gtk_window_set_resizable (GTK_WINDOW (options_window), FALSE);
 	gtk_window_set_type_hint (GTK_WINDOW (options_window), GDK_WINDOW_TYPE_HINT_UTILITY);
 	gtk_window_set_transient_for (GTK_WINDOW (options_window), GTK_WINDOW (window));
@@ -131,7 +158,19 @@ nemo_finder_view_options_show (NemoWindow *window)
 		gtk_range_set_value (GTK_RANGE (scale), nemo_view_get_zoom_level (view));
 		g_signal_connect (scale, "value-changed", G_CALLBACK (zoom_value_changed_cb), view);
 		gtk_widget_set_size_request (scale, 200, -1);
-		gtk_box_pack_start (GTK_BOX (box), labeled_row (_("Icon size:"), scale), FALSE, FALSE, 0);
+		if (is_desktop) {
+			GtkWidget *row = labeled_row (_("Icon size:"), scale);
+			GtkWidget *size_label = gtk_label_new (NULL);
+
+			gtk_widget_set_size_request (size_label, 64, -1);
+			g_object_set_data (G_OBJECT (scale), "size-label", size_label);
+			desktop_update_size_label (GTK_RANGE (scale));
+			g_signal_connect (scale, "value-changed", G_CALLBACK (desktop_update_size_label), NULL);
+			gtk_box_pack_start (GTK_BOX (row), size_label, FALSE, FALSE, 0);
+			gtk_box_pack_start (GTK_BOX (box), row, FALSE, FALSE, 0);
+		} else {
+			gtk_box_pack_start (GTK_BOX (box), labeled_row (_("Icon size:"), scale), FALSE, FALSE, 0);
+		}
 	}
 
 	if (NEMO_IS_LIST_VIEW (view)) {
@@ -156,28 +195,35 @@ nemo_finder_view_options_show (NemoWindow *window)
 	}
 
 	if (NEMO_IS_DESKTOP_ICON_GRID_VIEW (view)) {
-		GtkWidget *h_scale = gtk_scale_new_with_range (GTK_ORIENTATION_HORIZONTAL, 0.5, 1.5, 0.05);
-		GtkWidget *v_scale = gtk_scale_new_with_range (GTK_ORIENTATION_HORIZONTAL, 0.5, 1.5, 0.05);
-		GtkWidget *font_spin = gtk_spin_button_new_with_range (10, 16, 1);
+		GtkWidget *spacing = gtk_scale_new_with_range (GTK_ORIENTATION_HORIZONTAL, 0.5, 1.5, 0.05);
+		GtkWidget *font_combo = gtk_combo_box_text_new ();
 		char *font = g_settings_get_string (nemo_desktop_preferences, "font");
 		PangoFontDescription *desc = pango_font_description_from_string (font);
 		int size = pango_font_description_get_size (desc) / PANGO_SCALE;
+		char id[8];
+		int n;
 
-		gtk_scale_set_draw_value (GTK_SCALE (h_scale), FALSE);
-		gtk_scale_set_draw_value (GTK_SCALE (v_scale), FALSE);
-		g_settings_bind (nemo_desktop_preferences, "horizontal-grid-adjust",
-		                 gtk_range_get_adjustment (GTK_RANGE (h_scale)), "value", G_SETTINGS_BIND_DEFAULT);
-		g_settings_bind (nemo_desktop_preferences, "vertical-grid-adjust",
-		                 gtk_range_get_adjustment (GTK_RANGE (v_scale)), "value", G_SETTINGS_BIND_DEFAULT);
-		gtk_box_pack_start (GTK_BOX (box), labeled_row (_("Grid spacing:"), h_scale), FALSE, FALSE, 0);
-		gtk_box_pack_start (GTK_BOX (box), labeled_row ("", v_scale), FALSE, FALSE, 0);
+		/* una sola barra para el espacio de la rejilla (horizontal y vertical a la vez) */
+		gtk_scale_set_draw_value (GTK_SCALE (spacing), FALSE);
+		gtk_range_set_value (GTK_RANGE (spacing),
+		                     g_settings_get_double (nemo_desktop_preferences, "horizontal-grid-adjust"));
+		g_signal_connect (spacing, "value-changed", G_CALLBACK (desktop_spacing_changed_cb), NULL);
+		gtk_box_pack_start (GTK_BOX (box), labeled_row (_("Grid spacing:"), spacing), FALSE, FALSE, 0);
 
-		gtk_spin_button_set_value (GTK_SPIN_BUTTON (font_spin), size > 0 ? size : 12);
-		g_object_set_data_full (G_OBJECT (font_spin), "font-desc", desc,
+		for (n = 10; n <= 16; n++) {
+			g_snprintf (id, sizeof id, "%d", n);
+			gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (font_combo), id, id);
+		}
+		g_snprintf (id, sizeof id, "%d", size >= 10 && size <= 16 ? size : 12);
+		gtk_combo_box_set_active_id (GTK_COMBO_BOX (font_combo), id);
+		g_object_set_data_full (G_OBJECT (font_combo), "font-desc", desc,
 		                        (GDestroyNotify) pango_font_description_free);
-		g_signal_connect (font_spin, "value-changed", G_CALLBACK (desktop_text_size_changed_cb), NULL);
-		gtk_box_pack_start (GTK_BOX (box), labeled_row (_("Text size:"), font_spin), FALSE, FALSE, 0);
+		g_signal_connect (font_combo, "changed", G_CALLBACK (desktop_text_size_changed_cb), NULL);
+		gtk_box_pack_start (GTK_BOX (box), labeled_row (_("Text size:"), font_combo), FALSE, FALSE, 0);
 		g_free (font);
+
+		gtk_widget_show_all (options_window);
+		return;
 	}
 
 	check = gtk_check_button_new_with_label (_("Keep folders on top"));

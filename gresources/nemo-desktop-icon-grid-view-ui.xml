@@ -11,10 +11,10 @@
     </placeholder>
     <placeholder name="After Zoom Items">
         <placeholder name="Background Items">
-            <separator/>
+            <separator name="DesktopSeparator"/>
             <menuitem name="Desktop Get Info" action="Desktop Get Info"/>
             <menuitem name="Desktop Change Background" action="Desktop Change Background"/>
-            <separator/>
+            <separator name="DesktopSeparator"/>
             <menu action="Desktop Sort By Menu">
                 <menuitem name="Desktop Sort None" action="Desktop Sort None"/>
                 <separator/>
@@ -24,7 +24,6 @@
                 <menuitem name="Desktop Sort by Size" action="Desktop Sort by Size"/>
             </menu>
             <menuitem name="Desktop Clean Up" action="Desktop Clean Up"/>
-            <separator/>
             <menuitem name="Desktop View Options" action="Desktop View Options"/>
         </placeholder>
     </placeholder>

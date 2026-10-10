@@ -446,6 +446,18 @@ desktop_volumes_visible_changed (gpointer callback_data)
 	g_list_free (mounts);
 }
 
+static void desktop_volumes_visible_changed (gpointer callback_data);
+
+static gboolean
+initial_mounts_cb (gpointer data)
+{
+	NemoDesktopLinkMonitor *monitor = data;
+
+	desktop_volumes_visible_changed (monitor);
+	g_object_unref (monitor);
+	return G_SOURCE_REMOVE;
+}
+
 static void
 create_link_and_add_preference (NemoDesktopLink   **link_ref,
 				NemoDesktopLinkType link_type,
@@ -515,13 +527,18 @@ nemo_desktop_link_monitor_init (NemoDesktopLinkMonitor *monitor)
 
 	/* Mount links */
 
-	mounts = g_volume_monitor_get_mounts (monitor->details->volume_monitor);
-	for (l = mounts; l != NULL; l = l->next) {
-		mount = l->data;
-		create_mount_link (monitor, mount);
-		g_object_unref (mount);
+	if (macos_desktop ()) {
+		/* el disco de arranque tiene que llegar al escritorio antes que los volúmenes */
+		g_timeout_add (1500, initial_mounts_cb, g_object_ref (monitor));
+	} else {
+		mounts = g_volume_monitor_get_mounts (monitor->details->volume_monitor);
+		for (l = mounts; l != NULL; l = l->next) {
+			mount = l->data;
+			create_mount_link (monitor, mount);
+			g_object_unref (mount);
+		}
+		g_list_free (mounts);
 	}
-	g_list_free (mounts);
 
 	g_signal_connect_swapped (nemo_desktop_preferences,
 				  "changed::" NEMO_PREFERENCES_DESKTOP_VOLUMES_VISIBLE,
