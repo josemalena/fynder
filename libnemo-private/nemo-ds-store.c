@@ -461,8 +461,12 @@ parse_object (Plist *pl, guint64 index, int depth)
 	case 0x1: {
 		gsize bytes = (gsize) 1 << (marker & 0x0f);
 
-		if (bytes > 8 || pos + bytes > pl->length)
+		/* macOS 27 escribe viewOptionsVersion como entero de 16 bytes: vale el valor de los
+		 * últimos 8 */
+		if (bytes > 16 || pos + bytes > pl->length)
 			return NULL;
+		if (bytes > 8)
+			return g_variant_new_int64 ((gint64) read_be (pl->data + pos + bytes - 8, 8));
 		return g_variant_new_int64 ((gint64) read_be (pl->data + pos, bytes));
 	}
 	case 0x2: {
