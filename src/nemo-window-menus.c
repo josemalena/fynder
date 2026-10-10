@@ -1681,13 +1681,13 @@ static const GtkRadioActionEntry sidebar_radio_entries[] = {
 
 static const GtkRadioActionEntry view_radio_entries[] = {
     { "IconView", NULL,
-      N_("Icon View"), "<ctrl>1", N_("Icon View"),
+      N_("as _Icons"), "<ctrl>1", N_("Icon View"),
       ICON_VIEW },
     { "ListView", NULL,
-      N_("List View"), "<ctrl>2", N_("List View"),
+      N_("as _List"), "<ctrl>2", N_("List View"),
       LIST_VIEW },
     { "CompactView", NULL,
-      N_("Compact View"), "<ctrl>3", N_("Compact View"),
+      N_("as _Columns"), "<ctrl>3", N_("Compact View"),
       COMPACT_VIEW }
 };
 
