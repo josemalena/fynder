@@ -72,7 +72,6 @@
 			<menuitem name="Show Hide Statusbar" action="Show Hide Statusbar"/>
 			<menuitem name="Show Hide Path Bar" action="Show Hide Path Bar"/>
             <separator/>
-			<menuitem name="Show Hide Extra Pane" action="Show Hide Extra Pane"/>
 		</placeholder>
 		<separator/>
 		<placeholder name="View Preferences Placeholder"/>
@@ -121,6 +120,16 @@
 		</menu>
 
 	</placeholder>
+	<menu action="Window">
+		<menuitem name="Window Minimize" action="Window Minimize"/>
+		<separator/>
+		<menuitem name="TabsPrevious Menu" action="TabsPrevious"/>
+		<menuitem name="TabsNext Menu" action="TabsNext"/>
+		<menuitem name="TabsMoveLeft Menu" action="TabsMoveLeft"/>
+		<menuitem name="TabsMoveRight Menu" action="TabsMoveRight"/>
+		<separator/>
+		<menuitem name="Show Hide Extra Pane Menu" action="Show Hide Extra Pane"/>
+	</menu>
 	<menu action="Help">
 		<menuitem action="NemoHelp"/>
         <menuitem action="NemoShortcuts"/>

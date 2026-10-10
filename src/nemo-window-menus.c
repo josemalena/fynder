@@ -210,6 +210,13 @@ action_go_to_downloads_callback (GtkAction *action,
 }
 
 static void
+action_window_minimize_callback (GtkAction *action,
+				 gpointer user_data)
+{
+	gtk_window_iconify (GTK_WINDOW (user_data));
+}
+
+static void
 action_go_to_computer_callback (GtkAction *action,
 				gpointer user_data)
 {
@@ -1564,6 +1571,11 @@ static const GtkActionEntry main_entries[] = {
   /* name, stock id, label */  { "Go", NULL, N_("_Go") },
   /* name, stock id, label */  { "Bookmarks", NULL, N_("_Bookmarks") },
   /* name, stock id, label */  { "Tabs", NULL, N_("_Tabs") },
+  /* name, stock id, label */  { "Window", NULL, N_("_Window") },
+  /* name, stock id */         { "Window Minimize", NULL,
+  /* label, accelerator */       N_("_Minimize"), NULL,
+  /* tooltip */                  N_("Minimize this window"),
+                                 G_CALLBACK (action_window_minimize_callback) },
   /* name, stock id, label */  { "New Window", NULL, N_("New _Window"),
                                  "<control>N", N_("Open another Fynder window for the displayed location"),
                                  G_CALLBACK (action_new_window_callback) },
