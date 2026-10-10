@@ -11027,7 +11027,8 @@ nemo_view_activate_filter (NemoView *view, GdkEventKey *event)
         return FALSE;
     }
 
-    if ((event->state & (GDK_CONTROL_MASK | GDK_MOD1_MASK)) != 0) {
+    /* Con Super (Cmd) se pulsa un atajo, no se escribe para filtrar */
+    if ((event->state & (GDK_CONTROL_MASK | GDK_MOD1_MASK | GDK_SUPER_MASK | GDK_META_MASK)) != 0) {
         return FALSE;
     }
 

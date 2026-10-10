@@ -53,6 +53,7 @@ static const FinderShortcut shortcuts[] = {
 	/* Navegación */
 	{ GDK_KEY_bracketleft,  CMD,         NEMO_ACTION_BACK, TRUE },
 	{ GDK_KEY_bracketright, CMD,         NEMO_ACTION_FORWARD, TRUE },
+	{ GDK_KEY_Up,           CMD,         NEMO_ACTION_UP, TRUE },
 	{ GDK_KEY_h,            CMD | SHIFT, NEMO_ACTION_HOME, TRUE },
 
 	/* Vistas: iconos, lista, columnas (la compacta) */
@@ -184,8 +185,12 @@ nemo_finder_shortcuts_window_level (NemoWindow *window,
 
 	for (i = 0; i < G_N_ELEMENTS (shortcuts); i++) {
 		if (shortcuts[i].window_level &&
-		    shortcuts[i].keyval == keyval && shortcuts[i].mods == mods)
-			return activate_action (window, shortcuts[i].action);
+		    shortcuts[i].keyval == keyval && shortcuts[i].mods == mods) {
+			/* el atajo se consume aunque la acción no aplique ahora, para que la
+			 * tecla no se cuele al widget con el foco */
+			activate_action (window, shortcuts[i].action);
+			return TRUE;
+		}
 	}
 
 	return FALSE;
@@ -264,8 +269,10 @@ nemo_finder_shortcuts_handle (NemoWindow *window,
 		return TRUE;
 
 	for (i = 0; i < G_N_ELEMENTS (shortcuts); i++) {
-		if (shortcuts[i].keyval == keyval && shortcuts[i].mods == mods)
-			return activate_action (window, shortcuts[i].action);
+		if (shortcuts[i].keyval == keyval && shortcuts[i].mods == mods) {
+			activate_action (window, shortcuts[i].action);
+			return TRUE;
+		}
 	}
 
 	return FALSE;
