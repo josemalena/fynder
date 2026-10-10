@@ -682,6 +682,11 @@
       <summary>Horizontal desktop grid adjustment</summary>
       <description>Overrides the standard horizontal spacing for the desktop grid, in situation where default spacing is not ideal due to label customizations.  This is a value from 0.5 to 1.5, with 1.0 being no adjustment, and 0.5 being half the default spacing.</description>
     </key>
+    <key name="finder-columns-right-to-left" type="b">
+      <default>true</default>
+      <summary>Lay out desktop icons in columns from right to left</summary>
+      <description>Like the macOS desktop, icons fill the rightmost column from top to bottom first and then continue to the left, regardless of the text direction.</description>
+    </key>
     <key name="home-icon-visible" type="b">
       <default>false</default>
       <summary>Home icon visible on desktop</summary>

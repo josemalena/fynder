@@ -111,6 +111,7 @@ typedef struct {
     int real_snap_x;
     int real_snap_y;
     gboolean horizontal;
+    gboolean rtl;   /* columnas de derecha a izquierda (escritorio estilo macOS) */
 } NemoCenteredPlacementGrid;
 
 typedef struct {
@@ -254,6 +255,7 @@ struct NemoIconContainerDetails {
 
     /* Used by desktop grid container only */
     gboolean horizontal;
+    gboolean desktop_right_to_left;
     gint h_adjust;
     gint v_adjust;
 
@@ -406,6 +408,7 @@ void          nemo_icon_container_get_icon_text (NemoIconContainer *container,
  */
 
 NemoCenteredPlacementGrid *nemo_centered_placement_grid_new               (NemoIconContainer *container, gboolean horizontal);
+void                       nemo_centered_placement_grid_get_first_position_rect (NemoCenteredPlacementGrid *grid, GdkRectangle *rect);
 void               nemo_centered_placement_grid_free              (NemoCenteredPlacementGrid *grid);
 
 void               nemo_centered_placement_grid_nominal_to_icon_position (NemoCenteredPlacementGrid *grid,

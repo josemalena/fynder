@@ -25,6 +25,9 @@
 #include "nemo-icon-private.h"
 #include "nemo-file.h"
 
+#define DESKTOP_FIRST_COLUMN_CENTER 66
+#define DESKTOP_FIRST_ROW_TOP 12
+
 NemoCenteredPlacementGrid *
 nemo_centered_placement_grid_new (NemoIconContainer *container, gboolean horizontal)
 {
@@ -79,7 +82,46 @@ nemo_centered_placement_grid_new (NemoIconContainer *container, gboolean horizon
     grid->borders->top = (height - (num_rows * snap_y)) / 2;
     grid->borders->bottom = (height - (num_rows * snap_y)) / 2;
 
+    grid->rtl = container->details->desktop_right_to_left && !horizontal;
+
+    if (grid->rtl) {
+        /* Como el escritorio de macOS: el centro de la primera columna a 66 px
+         * del borde derecho y el primer ícono 12 px debajo de la parte de arriba
+         * (el bloque ícono + etiqueta va centrado en su celda). */
+        gint right = MAX (0, DESKTOP_FIRST_COLUMN_CENTER - snap_x / 2);
+        gint top_gap = MAX (0, snap_y / 2 - GET_VIEW_CONSTANT (container, icon_vertical_adjust));
+        gint top = MAX (0, DESKTOP_FIRST_ROW_TOP - top_gap);
+
+        grid->borders->right = right;
+        grid->borders->left = MAX (0, width - num_columns * snap_x - right);
+        grid->borders->top = top;
+        grid->borders->bottom = MAX (0, height - num_rows * snap_y - top);
+    }
+
     return grid;
+}
+
+/* La última celda de la rejilla es la válvula de escape cuando sobran íconos. */
+static gboolean
+is_last_grid_position (NemoCenteredPlacementGrid *grid,
+                       gint                       x,
+                       gint                       y)
+{
+    gint last_x = grid->rtl ? 0 : grid->num_columns - 1;
+
+    return x == last_x && y == grid->num_rows - 1;
+}
+
+void
+nemo_centered_placement_grid_get_first_position_rect (NemoCenteredPlacementGrid *grid,
+                                                      GdkRectangle              *rect)
+{
+    gint first_x = grid->rtl ? grid->num_columns - 1 : 0;
+
+    rect->x = grid->borders->left + first_x * grid->real_snap_x;
+    rect->y = grid->borders->top;
+    rect->width = grid->real_snap_x;
+    rect->height = grid->real_snap_y;
 }
 
 void
@@ -152,6 +194,19 @@ nemo_centered_placement_grid_get_next_grid_position (NemoCenteredPlacementGrid *
                 }
             }
         }
+    } else if (grid->rtl) {
+        for (x = x_in; x >= 0; x--) {
+            for (y = first_line ? y_in : 0; y < grid->num_rows; y++) {
+                first_line = FALSE;
+
+                if (x != x_in || y != y_in) {
+                    goto out;
+                }
+            }
+        }
+        /* se acabó la rejilla: se queda en la última celda (la de abajo a la izquierda) */
+        x = 0;
+        y = grid->num_rows - 1;
     } else {
         for (x = x_in; x < grid->num_columns; x++) {
             for (y = first_line ? y_in : 0; y < grid->num_rows; y++) {
@@ -384,7 +439,7 @@ nemo_centered_placement_grid_get_next_position_rect (NemoCenteredPlacementGrid *
     out_rect->y += grid->borders->top;
 
     if (is_free) {
-        if ((next_index_x == grid->num_columns - 1) && (next_index_y == grid->num_rows - 1)) {
+        if (is_last_grid_position (grid, next_index_x, next_index_y)) {
             /* Last position of the grid is our escape valve when our number if icons
              * exceeds possible positions in the grid - we'll allow icons to overlap
              * here  (what else can we do?  Shrink the grid till everything fits?  That
@@ -423,7 +478,7 @@ nemo_centered_placement_grid_get_current_position_rect (NemoCenteredPlacementGri
     rect->y += grid->borders->top;
 
     if (is_free) {
-        if ((index_x == grid->num_columns - 1) && (index_y == grid->num_rows - 1)) {
+        if (is_last_grid_position (grid, index_x, index_y)) {
             /* Last position of the grid is our escape valve when our number if icons
              * exceeds possible positions in the grid - we'll allow icons to overlap
              * here  (what else can we do?  Shrink the grid till everything fits?  That

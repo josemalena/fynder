@@ -134,6 +134,14 @@ nemo = executable('fynder',
   install: true
 )
 
+nemoDesktop = executable('fynder-desktop',
+  nemoCommon_sources + nemoDesktop_sources,
+  include_directories: [ rootInclude],
+  c_args: nemo_definitions,
+  dependencies: nemo_deps,
+  install: true
+)
+
 nemo_autorun_software = executable('fynder-autorun-software',
   [ 'nemo-autorun-software.c' ],
   include_directories: [ rootInclude, ],

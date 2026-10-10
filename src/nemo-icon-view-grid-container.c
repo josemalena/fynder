@@ -615,7 +615,7 @@ lay_down_icons_desktop (NemoIconContainer *container, GList *icons)
         grid = nemo_centered_placement_grid_new (container, container->details->horizontal);
 
         if (grid != NULL) {
-            nemo_centered_placement_grid_get_current_position_rect (grid, 0, 0, &rect, NULL);
+            nemo_centered_placement_grid_get_first_position_rect (grid, &rect);
 
             while (icons != NULL) {
                 NemoIconPosition position;
@@ -1439,6 +1439,14 @@ update_layout_constants (NemoIconContainer *container)
     constants->snap_size_x = BASE_SNAP_SIZE_X * scale * h_adjust;
     constants->snap_size_y = BASE_SNAP_SIZE_Y * scale * v_adjust;
     constants->max_text_width_standard = BASE_MAX_TEXT_WIDTH * scale * h_adjust;
+
+    if (container->details->desktop_right_to_left) {
+        /* Medidas del escritorio de Catalina con íconos de 64 px: columnas cada
+         * 122 px, filas cada 112 y etiquetas de unos 110 px de ancho. */
+        constants->snap_size_x = (icon_size + 58) * h_adjust;
+        constants->snap_size_y = (icon_size + 48) * v_adjust;
+        constants->max_text_width_standard = 110 * h_adjust;
+    }
 
     constants->icon_vertical_adjust = MIN (get_vertical_adjustment (container, icon_size), constants->snap_size_y / 2);
     /* This isn't what this is intended for, but it's a simple way vs. overriding what

@@ -942,7 +942,9 @@ get_default_zoom_level (NemoIconView *icon_view)
 							  NEMO_PREFERENCES_COMPACT_VIEW_DEFAULT_ZOOM_LEVEL);
 
     if (NEMO_ICON_VIEW_GET_CLASS (icon_view)->use_grid_container) {
-        return NEMO_ZOOM_LEVEL_STANDARD;
+        /* el escritorio estilo macOS usa íconos de 64 px */
+        return g_settings_get_boolean (nemo_desktop_preferences, "finder-columns-right-to-left") ?
+               NEMO_ZOOM_LEVEL_LARGE : NEMO_ZOOM_LEVEL_STANDARD;
     }
 
 	return CLAMP (DEFAULT_ZOOM_LEVEL(icon_view), NEMO_ZOOM_LEVEL_SMALLEST, NEMO_ZOOM_LEVEL_LARGEST);

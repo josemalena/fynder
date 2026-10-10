@@ -531,6 +531,10 @@ nemo_desktop_icon_grid_view_constructed (GObject *object)
 
     NEMO_ICON_VIEW_GRID_CONTAINER (icon_container)->horizontal = FALSE;
 
+    /* columnas de derecha a izquierda, como el escritorio de macOS */
+    icon_container->details->desktop_right_to_left =
+        g_settings_get_boolean (nemo_desktop_preferences, "finder-columns-right-to-left");
+
     nemo_icon_container_set_store_layout_timestamps (icon_container, TRUE);
 
     /* Set allocation to be at 0, 0 */
