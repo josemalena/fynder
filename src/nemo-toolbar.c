@@ -145,7 +145,8 @@ nemo_toolbar_update_root_state (NemoToolbar *self)
 #define FINDER_GAP_MIN 40
 #define FINDER_GAP_MAX 240
 #define FINDER_GAP_FLOOR 8
-#define FINDER_TOOLBAR_SLACK 40
+#define FINDER_TOOLBAR_SLACK 24
+#define FINDER_ARROW_SLACK 12
 
 #define ARRANGE_ITEMS_PATH "/MenuBar/View/View Items Placeholder/Arrange Items"
 
@@ -590,6 +591,7 @@ toolbar_update_layout (NemoToolbar *self,
 
     if (!g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT)) {
         gtk_widget_set_margin_start (self->priv->right_item, 6);
+        gtk_toolbar_set_show_arrow (GTK_TOOLBAR (self->priv->toolbar), TRUE);
         return;
     }
 
@@ -614,6 +616,12 @@ toolbar_update_layout (NemoToolbar *self,
 
     if (gtk_widget_get_margin_start (self->priv->right_item) != gap)
         gtk_widget_set_margin_start (self->priv->right_item, gap);
+
+    /* El GtkToolbar reserva unos 19 px para la flecha «»» aunque nada desborde,
+     * y la búsqueda quedaba lejos del borde. La flecha solo se permite cuando
+     * ya no cabe todo con el hueco al mínimo. */
+    gtk_toolbar_set_show_arrow (GTK_TOOLBAR (self->priv->toolbar),
+                                avail < FINDER_GAP_FLOOR + FINDER_ARROW_SLACK);
 }
 
 static gboolean
