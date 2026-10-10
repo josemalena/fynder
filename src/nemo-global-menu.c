@@ -25,9 +25,11 @@
 #include "nemo-window-private.h"
 
 #include <gdk/gdkx.h>
+#include <glib/gi18n.h>
 #include <libnemo-private/nemo-global-preferences.h>
 
 #define DATA_KEY "nemo-global-menu"
+#define APP_ITEM_KEY "nemo-global-menu-app-item"
 
 typedef struct {
 	NemoWindow *window;          /* débil: el objeto vive en la ventana */
@@ -278,6 +280,10 @@ fill_from_shell (GlobalMenu *gm,
 		if (!GTK_IS_MENU_ITEM (child))
 			continue;
 
+		/* ya van en el menú de la aplicación */
+		if (g_object_get_data (G_OBJECT (child), APP_ITEM_KEY) != NULL)
+			continue;
+
 		label = menu_label (GTK_MENU_ITEM (child));
 		if (label == NULL)
 			continue;
@@ -364,6 +370,74 @@ window_owns_model (GlobalMenu *gm)
 	return gm->window != NULL && gtk_window_is_active (GTK_WINDOW (gm->window));
 }
 
+/* Menú de la aplicación («Fynder»), como el del Finder: Acerca de, Ajustes y
+ * Vaciar papelera. Sus ítems salen de los mismos widgets de GtkUIManager, que
+ * se quitan de su lugar habitual (Edit, Help, File). El atributo
+ * x-constanza-app-menu avisa al applet de que es el menú de la aplicación. */
+static const struct {
+	const char *widget_path;
+	const char *label;
+	const char *name;
+	gboolean separator_after;
+} app_menu_items[] = {
+	{ "/MenuBar/Help/About Nemo",                              N_("About Fynder"),  "app_about", TRUE  },
+	{ "/MenuBar/Edit/Preferences",                             N_("Preferences…"),  "app_prefs", TRUE  },
+	{ "/MenuBar/File/Global File Items Placeholder/Empty Trash", N_("Empty Trash…"), "app_trash", FALSE },
+};
+
+static void
+mark_app_items (GlobalMenu *gm)
+{
+	gsize i;
+
+	for (i = 0; i < G_N_ELEMENTS (app_menu_items); i++) {
+		GtkWidget *widget = gtk_ui_manager_get_widget (gm->ui_manager, app_menu_items[i].widget_path);
+
+		if (widget != NULL)
+			g_object_set_data (G_OBJECT (widget), APP_ITEM_KEY, GINT_TO_POINTER (1));
+	}
+}
+
+static GMenu *
+build_app_menu (GlobalMenu *gm,
+                GHashTable *used)
+{
+	GMenu *app = g_menu_new ();
+	GMenu *section = g_menu_new ();
+	gsize i;
+
+	for (i = 0; i < G_N_ELEMENTS (app_menu_items); i++) {
+		GtkWidget *widget = gtk_ui_manager_get_widget (gm->ui_manager, app_menu_items[i].widget_path);
+		ItemData *item;
+		char *detailed;
+		GMenuItem *menu_item;
+
+		if (widget == NULL || !GTK_IS_MENU_ITEM (widget))
+			continue;
+
+		item = ensure_item (gm, widget, app_menu_items[i].name, used);
+		detailed = g_strdup_printf ("win.%s", item->name);
+		menu_item = g_menu_item_new (_(app_menu_items[i].label), detailed);
+		/* oculto si la acción no está disponible (vaciar papelera sin papelera) */
+		if (!gtk_widget_get_visible (widget)) {
+			g_object_unref (menu_item);
+			g_free (detailed);
+			continue;
+		}
+		set_accel (menu_item, GTK_MENU_ITEM (widget));
+		g_menu_append_item (section, menu_item);
+		g_object_unref (menu_item);
+		g_free (detailed);
+
+		if (app_menu_items[i].separator_after)
+			flush_section (app, &section);
+	}
+
+	flush_section (app, &section);
+	g_object_unref (section);
+	return app;
+}
+
 static void
 rebuild_now (GlobalMenu *gm)
 {
@@ -384,8 +458,23 @@ rebuild_now (GlobalMenu *gm)
 	{
 		GtkWidget *menubar = gtk_ui_manager_get_widget (gm->ui_manager, "/MenuBar");
 
-		if (GTK_IS_MENU_SHELL (menubar))
+		if (GTK_IS_MENU_SHELL (menubar)) {
+			GMenu *app = NULL;
+
+			mark_app_items (gm);
+			app = build_app_menu (gm, used);
+			if (g_menu_model_get_n_items (G_MENU_MODEL (app)) > 0) {
+				GMenuItem *app_item = g_menu_item_new_submenu ("Fynder",
+				                                               G_MENU_MODEL (app));
+
+				g_menu_item_set_attribute (app_item, "x-constanza-app-menu", "b", TRUE);
+				g_menu_append_item (fresh, app_item);
+				g_object_unref (app_item);
+			}
+			g_object_unref (app);
+
 			fill_from_shell (gm, GTK_MENU_SHELL (menubar), fresh, used, "m", TRUE);
+		}
 	}
 
 	/* acciones que ya no tienen ítem */
