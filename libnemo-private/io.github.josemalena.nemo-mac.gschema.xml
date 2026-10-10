@@ -347,6 +347,11 @@
       <summary>Show Path in the Finder toolbar</summary>
       <description>Show the Path button (edit location) in the Finder-style toolbar.</description>
     </key>
+    <key name="global-menu" type="b">
+      <default>false</default>
+      <summary>Publish the menu bar in the desktop panel</summary>
+      <description>Publish the menu bar (File, Edit, View, Go, Bookmarks, Help) over D-Bus so a panel applet can show it, as macOS does, and hide the window's own menu bar.</description>
+    </key>
     <key name="finder-root-name" type="s">
       <default>'Macintosh HD'</default>
       <summary>Name shown for the main disk</summary>

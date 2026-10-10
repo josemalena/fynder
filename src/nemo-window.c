@@ -50,6 +50,7 @@
 #include "nemo-statusbar.h"
 #include "nemo-finder-shortcuts.h"
 #include "nemo-finder-path-bar.h"
+#include "nemo-global-menu.h"
 
 #include <eel/eel-debug.h>
 #include <eel/eel-gtk-extensions.h>
@@ -823,6 +824,8 @@ nemo_window_constructed (GObject *self)
                               "notify::scale-factor",
                               G_CALLBACK (nemo_window_reload),
                               window);
+
+    nemo_global_menu_install (window);
 }
 
 static void
@@ -1201,6 +1204,11 @@ toggle_menubar (NemoWindow *window, gint action)
 
     menu = window->details->menubar;
 
+    if (nemo_global_menu_hides_menubar ()) {
+        gtk_widget_hide (menu);
+        return;
+    }
+
     if (action == MENU_TOGGLE) {
         action = gtk_widget_get_visible (menu) ? MENU_HIDE : MENU_SHOW;
     }
@@ -1428,7 +1436,8 @@ nemo_window_sync_menu_bar (NemoWindow *window)
     GtkWidget *menu = window->details->menubar;
 
     if (g_settings_get_boolean (nemo_window_state, NEMO_WINDOW_STATE_START_WITH_MENU_BAR) &&
-                                !window->details->disable_chrome) {
+                                !window->details->disable_chrome &&
+                                !nemo_global_menu_hides_menubar ()) {
         gtk_widget_show (menu);
     } else {
         gtk_widget_hide (menu);
