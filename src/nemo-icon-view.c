@@ -113,6 +113,13 @@ struct NemoIconViewDetails
 	guint icon_merge_id;
 
 	gboolean compact;
+	gboolean gallery;
+	GtkWidget *gallery_preview;   /* overlay del slot con la vista previa grande */
+	GtkWidget *gallery_image;
+	GtkWidget *gallery_label;
+	NemoFile *gallery_file;
+	gulong gallery_file_handler;
+	GdkPixbuf *gallery_pixbuf;
 
 	gulong clipboard_handler_id;
 
@@ -948,6 +955,7 @@ set_labels_beside_icons (NemoIconView *icon_view)
 
 	if (nemo_icon_view_supports_labels_beside_icons (icon_view)) {
 		labels_beside = nemo_icon_view_is_compact (icon_view) ||
+			nemo_icon_view_is_gallery (icon_view) ||
 			g_settings_get_boolean (nemo_icon_view_preferences,
 						NEMO_PREFERENCES_ICON_VIEW_LABELS_BESIDE_ICONS);
 
@@ -1099,6 +1107,15 @@ nemo_icon_view_end_loading (NemoView *view,
 	info = nemo_clipboard_monitor_get_clipboard_info (monitor);
     nemo_icon_container_set_ok_to_load_deferred_attrs (NEMO_ICON_CONTAINER (icon_container), TRUE);
 	icon_view_notify_clipboard_info (monitor, info, icon_view);
+
+	/* como el Finder, la Gallery arranca con el primer archivo seleccionado */
+	if (icon_view->details->gallery) {
+		GList *selected = nemo_icon_container_get_selection (NEMO_ICON_CONTAINER (icon_container));
+
+		if (selected == NULL)
+			nemo_icon_container_select_first (NEMO_ICON_CONTAINER (icon_container));
+		g_list_free (selected);
+	}
 }
 
 static NemoZoomLevel
@@ -2564,6 +2581,10 @@ nemo_icon_view_get_id (NemoView *view)
 		return FM_COMPACT_VIEW_ID;
 	}
 
+	if (nemo_icon_view_is_gallery (NEMO_ICON_VIEW (view))) {
+		return NEMO_GALLERY_VIEW_ID;
+	}
+
 	return NEMO_ICON_VIEW_ID;
 }
 
@@ -2588,6 +2609,214 @@ set_compact_view (NemoIconView *icon_view,
         nemo_icon_container_set_forced_icon_size (get_icon_container (icon_view),
                                                   0);
     }
+}
+
+/* ---------- Vista Gallery ----------
+ *
+ * Una tira horizontal de miniaturas abajo (la vista de iconos con el layout en
+ * columnas, en una sola fila) y la vista previa grande del archivo
+ * seleccionado arriba, como la Gallery del Finder. La vista previa es un
+ * overlay del slot, encima del espacio que la tira deja libre. */
+
+#define GALLERY_STRIP_HEIGHT 130
+#define GALLERY_THUMB_PIXELS 96
+#define GALLERY_PREVIEW_PIXELS 512
+
+static void
+gallery_update_preview (NemoIconView *icon_view)
+{
+	NemoIconViewDetails *details = icon_view->details;
+	GList *selection = nemo_view_get_selection (NEMO_VIEW (icon_view));
+	NemoFile *file = (selection != NULL) ? NEMO_FILE (selection->data) : NULL;
+
+	if (details->gallery_preview == NULL) {
+		nemo_file_list_free (selection);
+		return;
+	}
+
+	if (file != details->gallery_file) {
+		if (details->gallery_file != NULL) {
+			g_signal_handler_disconnect (details->gallery_file, details->gallery_file_handler);
+			g_clear_object (&details->gallery_file);
+		}
+		details->gallery_file_handler = 0;
+		if (file != NULL) {
+			details->gallery_file = g_object_ref (file);
+			/* la miniatura puede llegar después: se repinta cuando el archivo cambie */
+			details->gallery_file_handler = g_signal_connect_swapped (file, "changed",
+				G_CALLBACK (gallery_update_preview), icon_view);
+		}
+	}
+
+	g_clear_object (&details->gallery_pixbuf);
+
+	if (file == NULL) {
+		gtk_label_set_text (GTK_LABEL (details->gallery_label), "");
+	} else {
+		char *name, *kind, *size_text, *text;
+
+		/* imágenes locales y no enormes: se cargan de verdad para que la vista previa sea nítida */
+		if (nemo_file_is_local (file) && nemo_file_get_size (file) < 25 * 1024 * 1024 &&
+		    nemo_file_is_mime_type (file, "image/*")) {
+			char *uri = nemo_file_get_uri (file);
+			char *path = g_filename_from_uri (uri, NULL, NULL);
+
+			if (path != NULL)
+				details->gallery_pixbuf = gdk_pixbuf_new_from_file_at_size (path, 1600, 1600, NULL);
+			g_free (path);
+			g_free (uri);
+		}
+
+		if (details->gallery_pixbuf == NULL)
+			details->gallery_pixbuf = nemo_file_get_icon_pixbuf (file, GALLERY_PREVIEW_PIXELS, TRUE,
+			                                                     gtk_widget_get_scale_factor (GTK_WIDGET (icon_view)),
+			                                                     NEMO_FILE_ICON_FLAGS_USE_THUMBNAILS);
+
+		name = nemo_file_get_display_name (file);
+		kind = nemo_file_get_string_attribute (file, "type");
+		size_text = nemo_file_get_string_attribute (file, "size");
+		text = g_strdup_printf ("%s\n%s%s%s", name, kind != NULL ? kind : "",
+		                        (kind != NULL && size_text != NULL) ? " — " : "",
+		                        size_text != NULL ? size_text : "");
+		gtk_label_set_text (GTK_LABEL (details->gallery_label), text);
+		g_free (text);
+		g_free (name);
+		g_free (kind);
+		g_free (size_text);
+	}
+
+	gtk_widget_queue_draw (details->gallery_image);
+	nemo_file_list_free (selection);
+}
+
+/* La miniatura se pinta escalada al espacio disponible; así el área no pide
+ * el tamaño de la imagen y no empuja la tira ni el resto de la ventana. */
+static gboolean
+gallery_image_draw_cb (GtkWidget *widget,
+                       cairo_t *cr,
+                       NemoIconView *icon_view)
+{
+	GdkPixbuf *pixbuf = icon_view->details->gallery_pixbuf;
+	int width = gtk_widget_get_allocated_width (widget);
+	int height = gtk_widget_get_allocated_height (widget);
+	double scale, pw, ph;
+
+	if (pixbuf == NULL)
+		return FALSE;
+
+	pw = gdk_pixbuf_get_width (pixbuf);
+	ph = gdk_pixbuf_get_height (pixbuf);
+	scale = MIN ((width - 24) / pw, (height - 24) / ph);
+	if (scale <= 0)
+		return FALSE;
+
+	cairo_translate (cr, (width - pw * scale) / 2, (height - ph * scale) / 2);
+	cairo_scale (cr, scale, scale);
+	gdk_cairo_set_source_pixbuf (cr, pixbuf, 0, 0);
+	cairo_pattern_set_filter (cairo_get_source (cr), CAIRO_FILTER_BEST);
+	cairo_paint (cr);
+
+	return FALSE;
+}
+
+/* La vista previa ocupa todo el overlay menos la franja de la tira. Se coloca
+ * a mano porque GtkOverlay reparte los hijos según la asignación del hijo
+ * principal, que aquí es solo la tira. */
+static gboolean
+gallery_get_child_position_cb (GtkOverlay *overlay,
+                               GtkWidget *widget,
+                               GdkRectangle *allocation,
+                               NemoIconView *icon_view)
+{
+	if (widget != icon_view->details->gallery_preview)
+		return FALSE;
+
+	allocation->x = 0;
+	allocation->y = 0;
+	allocation->width = gtk_widget_get_allocated_width (GTK_WIDGET (overlay));
+	allocation->height = MAX (1, gtk_widget_get_allocated_height (GTK_WIDGET (overlay)) - GALLERY_STRIP_HEIGHT);
+	return TRUE;
+}
+
+static void
+gallery_view_destroy_cb (GtkWidget *widget,
+                         NemoIconView *icon_view)
+{
+	NemoIconViewDetails *details = icon_view->details;
+
+	g_clear_object (&details->gallery_pixbuf);
+	if (details->gallery_file != NULL) {
+		g_signal_handler_disconnect (details->gallery_file, details->gallery_file_handler);
+		g_clear_object (&details->gallery_file);
+	}
+	if (details->gallery_preview != NULL) {
+		GtkWidget *overlay = gtk_widget_get_parent (details->gallery_preview);
+
+		if (overlay != NULL)
+			g_signal_handlers_disconnect_by_func (overlay, gallery_get_child_position_cb, icon_view);
+		gtk_widget_destroy (details->gallery_preview);
+		details->gallery_preview = NULL;
+	}
+}
+
+static void
+set_gallery_view (NemoIconView *icon_view)
+{
+	NemoIconViewDetails *details = icon_view->details;
+	NemoWindowSlot *slot = nemo_view_get_nemo_window_slot (NEMO_VIEW (icon_view));
+	GtkWidget *box, *image, *label;
+
+	details->gallery = TRUE;
+
+	/* el layout en columnas solo sabe poner las etiquetas al lado; en la tira no se
+	 * dibuja texto (ver get_icon_text), solo las miniaturas */
+	nemo_icon_container_set_layout_mode (get_icon_container (icon_view),
+	                                     gtk_widget_get_direction (GTK_WIDGET (icon_view)) == GTK_TEXT_DIR_RTL ?
+	                                         NEMO_ICON_LAYOUT_T_B_R_L : NEMO_ICON_LAYOUT_T_B_L_R);
+	nemo_icon_container_set_label_position (get_icon_container (icon_view),
+	                                        NEMO_ICON_LABEL_POSITION_BESIDE);
+	nemo_icon_container_set_forced_icon_size (get_icon_container (icon_view), GALLERY_THUMB_PIXELS);
+
+	/* la tira ocupa el borde de abajo; el resto del área es de la vista previa */
+	gtk_widget_set_valign (GTK_WIDGET (icon_view), GTK_ALIGN_END);
+	gtk_widget_set_size_request (GTK_WIDGET (icon_view), -1, GALLERY_STRIP_HEIGHT);
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (icon_view),
+	                                GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
+
+	if (slot == NULL || slot->view_overlay == NULL)
+		return;
+
+	box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 8);
+	gtk_style_context_add_class (gtk_widget_get_style_context (box), "nemo-gallery-preview");
+
+	image = gtk_drawing_area_new ();
+	gtk_widget_set_vexpand (image, TRUE);
+	g_signal_connect (image, "draw", G_CALLBACK (gallery_image_draw_cb), icon_view);
+	gtk_box_pack_start (GTK_BOX (box), image, TRUE, TRUE, 12);
+
+	label = gtk_label_new ("");
+	gtk_label_set_justify (GTK_LABEL (label), GTK_JUSTIFY_CENTER);
+	gtk_label_set_ellipsize (GTK_LABEL (label), PANGO_ELLIPSIZE_MIDDLE);
+	gtk_widget_set_margin_bottom (label, 10);
+	gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
+
+	details->gallery_preview = box;
+	details->gallery_image = image;
+	details->gallery_label = label;
+
+	gtk_overlay_add_overlay (GTK_OVERLAY (slot->view_overlay), box);
+	g_signal_connect (slot->view_overlay, "get-child-position",
+	                  G_CALLBACK (gallery_get_child_position_cb), icon_view);
+	gtk_widget_show_all (box);
+
+	g_signal_connect (icon_view, "selection-changed", G_CALLBACK (gallery_update_preview), NULL);
+	g_signal_connect (icon_view, "destroy", G_CALLBACK (gallery_view_destroy_cb), icon_view);
+}
+
+gboolean
+nemo_icon_view_is_gallery (NemoIconView *view)
+{
+	return view->details->gallery;
 }
 
 static void
@@ -2867,6 +3096,24 @@ nemo_icon_view_create (NemoWindowSlot *slot)
 }
 
 static NemoView *
+nemo_gallery_view_create (NemoWindowSlot *slot)
+{
+	NemoIconView *view;
+
+	view = g_object_new (NEMO_TYPE_ICON_VIEW,
+			     "window-slot", slot,
+			     NULL);
+#if GTK_CHECK_VERSION (3, 20, 0)
+	gtk_style_context_add_class (gtk_widget_get_style_context (GTK_WIDGET(view)), GTK_STYLE_CLASS_VIEW);
+#endif
+
+	set_compact_view (view, FALSE);
+	set_gallery_view (view);
+
+	return NEMO_VIEW (view);
+}
+
+static NemoView *
 nemo_compact_view_create (NemoWindowSlot *slot)
 {
 	NemoIconView *view;
@@ -2937,6 +3184,20 @@ static NemoViewInfo nemo_compact_view = {
 	nemo_icon_view_supports_uri
 };
 
+static NemoViewInfo nemo_gallery_view = {
+	(char *)NEMO_GALLERY_VIEW_ID,
+	/* translators: this is used in the view selection dropdown
+	 * of navigation windows and in the preferences dialog */
+	(char *)N_("Gallery View"),
+	/* translators: this is used in the view menu */
+	(char *)N_("_Gallery"),
+	(char *)N_("The gallery view encountered an error."),
+	(char *)N_("The gallery view encountered an error while starting up."),
+	(char *)N_("Display this location with the gallery view."),
+	nemo_gallery_view_create,
+	nemo_icon_view_supports_uri
+};
+
 gboolean
 nemo_icon_view_is_compact (NemoIconView *view)
 {
@@ -2948,6 +3209,13 @@ nemo_icon_view_register (void)
 {
 	TRANSLATE_VIEW_INFO (nemo_icon_view)
 		nemo_view_factory_register (&nemo_icon_view);
+}
+
+void
+nemo_icon_view_gallery_register (void)
+{
+	TRANSLATE_VIEW_INFO (nemo_gallery_view)
+		nemo_view_factory_register (&nemo_gallery_view);
 }
 
 void

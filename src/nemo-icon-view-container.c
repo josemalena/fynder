@@ -336,7 +336,8 @@ nemo_icon_view_container_get_icon_text (NemoIconContainer *container,
 	use_additional = (additional_text != NULL);
 
 	/* In the smallest zoom mode, no text is drawn. */
-	if (nemo_icon_container_get_zoom_level (container) == NEMO_ZOOM_LEVEL_SMALLEST &&
+	if ((nemo_icon_container_get_zoom_level (container) == NEMO_ZOOM_LEVEL_SMALLEST ||
+	     nemo_icon_view_is_gallery (icon_view)) &&
             !include_invisible) {
 		*editable_text = NULL;
         if (pinned) {
@@ -358,7 +359,7 @@ nemo_icon_view_container_get_icon_text (NemoIconContainer *container,
 		return;
 	}
 
-	if (nemo_icon_view_is_compact (icon_view)) {
+	if (nemo_icon_view_is_compact (icon_view) || nemo_icon_view_is_gallery (icon_view)) {
 		*additional_text = NULL;
 		return;
 	}

@@ -57,6 +57,7 @@ struct _NemoToolbarPriv {
     GtkWidget *icon_view_button;
     GtkWidget *list_view_button;
     GtkWidget *compact_view_button;
+    GtkWidget *gallery_view_button;
     GtkWidget *view_switcher;
     GtkWidget *navigation_box;
     GtkWidget *show_thumbnails_button;
@@ -663,6 +664,7 @@ toolbar_apply_finder_icons (NemoToolbar *self,
     toolbar_set_finder_icon (self->priv->icon_view_button, "view-grid-symbolic", finder_layout);
     toolbar_set_finder_icon (self->priv->list_view_button, "view-list-symbolic", finder_layout);
     toolbar_set_finder_icon (self->priv->compact_view_button, "view-column-symbolic", finder_layout);
+    toolbar_set_finder_icon (self->priv->gallery_view_button, "view-coverflow-symbolic", finder_layout);
     toolbar_set_finder_icon (self->priv->show_extra_pane_button, "view-dual-symbolic", finder_layout);
 }
 
@@ -928,6 +930,14 @@ toolbar_update_appearance (NemoToolbar *self)
     if ( icon_toolbar == FALSE ) { gtk_widget_hide (widgetitem); }
     else {gtk_widget_show (GTK_WIDGET(widgetitem));}
 
+    /* el botón de Gallery solo existe en el layout Finder */
+    widgetitem = self->priv->gallery_view_button;
+    if (g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT)) {
+        gtk_widget_show (GTK_WIDGET (widgetitem));
+    } else {
+        gtk_widget_hide (widgetitem);
+    }
+
     widgetitem = self->priv->show_thumbnails_button;
     icon_toolbar = g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_SHOW_SHOW_THUMBNAILS_TOOLBAR);
     if ( icon_toolbar == FALSE ) { gtk_widget_hide (widgetitem); }
@@ -1158,6 +1168,9 @@ nemo_toolbar_constructed (GObject *obj)
 
     self->priv->compact_view_button = toolbar_create_toolbutton (self, TRUE, NEMO_ACTION_COMPACT_VIEW);
     gtk_container_add (GTK_CONTAINER (self->priv->view_switcher), self->priv->compact_view_button);
+
+    self->priv->gallery_view_button = toolbar_create_toolbutton (self, TRUE, NEMO_ACTION_GALLERY_VIEW);
+    gtk_container_add (GTK_CONTAINER (self->priv->view_switcher), self->priv->gallery_view_button);
     gtk_container_add (GTK_CONTAINER (box), self->priv->view_switcher);
 
     /* Solo en el layout Finder: menú de orden de la vista activa */

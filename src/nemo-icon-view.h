@@ -45,6 +45,7 @@ typedef struct NemoIconViewClass NemoIconViewClass;
 
 #define NEMO_ICON_VIEW_ID "OAFIID:Nemo_File_Manager_Icon_View"
 #define FM_COMPACT_VIEW_ID "OAFIID:Nemo_File_Manager_Compact_View"
+#define NEMO_GALLERY_VIEW_ID "FynderGalleryView"
 
 typedef struct NemoIconViewDetails NemoIconViewDetails;
 
@@ -68,6 +69,8 @@ gboolean nemo_icon_view_is_compact   (NemoIconView *icon_view);
 
 void    nemo_icon_view_register         (void);
 void    nemo_icon_view_compact_register (void);
+void    nemo_icon_view_gallery_register (void);
+gboolean nemo_icon_view_is_gallery   (NemoIconView *icon_view);
 
 NemoIconContainer * nemo_icon_view_get_icon_container (NemoIconView *view);
 

@@ -84,6 +84,7 @@ enum {
     ICON_VIEW,
     LIST_VIEW,
     COMPACT_VIEW,
+    GALLERY_VIEW,
     SIDEBAR_PLACES,
     SIDEBAR_TREE,
     TOOLBAR_PATHBAR,
@@ -803,6 +804,9 @@ view_radio_entry_changed_cb (GtkAction *action,
         case COMPACT_VIEW:
             set_content_view_type (window, FM_COMPACT_VIEW_ID);
             break;
+        case GALLERY_VIEW:
+            set_content_view_type (window, NEMO_GALLERY_VIEW_ID);
+            break;
         default:
             ;
             break;
@@ -1148,6 +1152,13 @@ action_compact_view_callback (GtkAction *action,
     set_content_view_type (window, FM_COMPACT_VIEW_ID);
 }
 
+static void
+action_gallery_view_callback (GtkAction *action,
+                              gpointer user_data)
+{
+    set_content_view_type (NEMO_WINDOW (user_data), NEMO_GALLERY_VIEW_ID);
+}
+
 guint
 action_for_view_id (const char *view_id)
 {
@@ -1157,6 +1168,8 @@ action_for_view_id (const char *view_id)
         return LIST_VIEW;
     } else if (g_strcmp0(view_id, FM_COMPACT_VIEW_ID) == 0) {
         return COMPACT_VIEW;
+    } else if (g_strcmp0(view_id, NEMO_GALLERY_VIEW_ID) == 0) {
+        return GALLERY_VIEW;
     } else {
         return NULL_VIEW;
     }
@@ -1165,7 +1178,7 @@ action_for_view_id (const char *view_id)
 void
 toolbar_set_view_button (guint action_id, NemoWindow *window)
 {
-    GtkAction *action, *action1, *action2;
+    GtkAction *action, *action1, *action2, *action3;
     GtkActionGroup *action_group;
     if (action_id == NULL_VIEW) {
         return;
@@ -1178,6 +1191,22 @@ toolbar_set_view_button (guint action_id, NemoWindow *window)
                                          NEMO_ACTION_LIST_VIEW);
     action2 = gtk_action_group_get_action(action_group,
                                          NEMO_ACTION_COMPACT_VIEW);
+    action3 = gtk_action_group_get_action(action_group,
+                                         NEMO_ACTION_GALLERY_VIEW);
+
+    g_signal_handlers_block_matched (action3,
+                         G_SIGNAL_MATCH_FUNC,
+                         0, 0,
+                         NULL,
+                         action_gallery_view_callback,
+                         window);
+    gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action3), action_id == GALLERY_VIEW);
+    g_signal_handlers_unblock_matched (action3,
+                         G_SIGNAL_MATCH_FUNC,
+                         0, 0,
+                         NULL,
+                         action_gallery_view_callback,
+                         window);
 
     g_signal_handlers_block_matched (action,
                          G_SIGNAL_MATCH_FUNC,
@@ -1723,7 +1752,10 @@ static const GtkRadioActionEntry view_radio_entries[] = {
       LIST_VIEW },
     { "CompactView", NULL,
       N_("as Co_mpact"), "<ctrl>3", N_("Compact View"),
-      COMPACT_VIEW }
+      COMPACT_VIEW },
+    { "GalleryView", NULL,
+      N_("as _Gallery"), "<ctrl>4", N_("Gallery View"),
+      GALLERY_VIEW }
 };
 
 static const GtkRadioActionEntry toolbar_radio_entries[] = {
@@ -1907,6 +1939,18 @@ nemo_window_create_toolbar_action_group (NemoWindow *window)
     gtk_action_set_icon_name (GTK_ACTION (action), "xsi-view-compact-symbolic");
 
    	g_object_unref (action);
+
+    action = GTK_ACTION (gtk_toggle_action_new (NEMO_ACTION_GALLERY_VIEW,
+                         _("Gallery"),
+                         _("Gallery View"),
+                         NULL));
+    g_signal_connect (action, "activate",
+                      G_CALLBACK (action_gallery_view_callback),
+                      window);
+    gtk_action_group_add_action (action_group, action);
+    gtk_action_set_icon_name (GTK_ACTION (action), "xsi-view-coverflow-symbolic");
+
+    g_object_unref (action);
 
  	action = GTK_ACTION (gtk_toggle_action_new (NEMO_ACTION_SEARCH,
  				_("Search"),_("Search documents and folders"),

@@ -64,6 +64,7 @@ static const FinderShortcut shortcuts[] = {
 	{ GDK_KEY_1,            CMD,         NEMO_ACTION_ICON_VIEW, TRUE },
 	{ GDK_KEY_2,            CMD,         NEMO_ACTION_LIST_VIEW, TRUE },
 	{ GDK_KEY_3,            CMD,         NEMO_ACTION_COMPACT_VIEW, TRUE },
+	{ GDK_KEY_4,            CMD,         NEMO_ACTION_GALLERY_VIEW, TRUE },
 
 	/* Ir a: equipo, red, servidor */
 	{ GDK_KEY_c,            CMD | SHIFT, "Go to Computer", TRUE },

@@ -1034,6 +1034,27 @@ draw_label_text (NemoIconCanvasItem *item,
 	measure_label_text (item);
 	if (details->text_height == 0 ||
 	    details->text_width == 0) {
+		/* Sin texto (la tira de la Gallery) la selección se marca con un
+		 * borde del color de selección alrededor de la miniatura. */
+		if (details->is_highlighted_for_selection && !details->is_renaming) {
+			GtkStyleContext *frame_context = gtk_widget_get_style_context (
+				GTK_WIDGET (EEL_CANVAS_ITEM (item)->canvas));
+			GdkRGBA color;
+
+			gtk_style_context_save (frame_context);
+			gtk_style_context_set_state (frame_context, GTK_STATE_FLAG_SELECTED);
+			gtk_style_context_get_background_color (frame_context, GTK_STATE_FLAG_SELECTED, &color);
+			gtk_style_context_restore (frame_context);
+
+			cairo_save (cr);
+			gdk_cairo_set_source_rgba (cr, &color);
+			cairo_set_line_width (cr, 3);
+			/* dentro de los límites del item: si no, al deseleccionar no se repinta */
+			cairo_rectangle (cr, icon_rect.x0 + 1.5, icon_rect.y0 + 1.5,
+			                 icon_rect.x1 - icon_rect.x0 - 3, icon_rect.y1 - icon_rect.y0 - 3);
+			cairo_stroke (cr);
+			cairo_restore (cr);
+		}
 		return;
 	}
 
