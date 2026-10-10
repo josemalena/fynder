@@ -66,6 +66,8 @@ struct _NemoToolbarPriv {
     GtkWidget *delete_button;
     GtkWidget *sidebar_button;
     GtkWidget *path_button;
+    GtkWidget *right_item;      /* GtkToolItem de la caja derecha */
+    GtkWidget *right_box;
     GtkWidget *search_item;
     GtkWidget *search_entry;
     gboolean updating_search;
@@ -121,6 +123,10 @@ nemo_toolbar_update_root_state (NemoToolbar *self)
     }
 }
 
+/* Medidas del toolbar Finder (en píxeles) */
+#define FINDER_ICON_PIXELS 22
+#define FINDER_GROUP_GAP 56
+
 #define ARRANGE_ITEMS_PATH "/MenuBar/View/View Items Placeholder/Arrange Items"
 
 static GtkWidget *
@@ -130,10 +136,15 @@ toolbar_create_menu_button (const gchar *icon_name,
     GtkWidget *button = gtk_button_new ();
     GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 2);
 
-    gtk_container_add (GTK_CONTAINER (box),
-                       gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_SMALL_TOOLBAR));
-    gtk_container_add (GTK_CONTAINER (box),
-                       gtk_image_new_from_icon_name ("pan-down-symbolic", GTK_ICON_SIZE_MENU));
+    {
+        GtkWidget *icon = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_SMALL_TOOLBAR);
+        GtkWidget *chevron = gtk_image_new_from_icon_name ("pan-down-symbolic", GTK_ICON_SIZE_MENU);
+
+        gtk_image_set_pixel_size (GTK_IMAGE (icon), FINDER_ICON_PIXELS);
+        gtk_image_set_pixel_size (GTK_IMAGE (chevron), 12);
+        gtk_container_add (GTK_CONTAINER (box), icon);
+        gtk_container_add (GTK_CONTAINER (box), chevron);
+    }
     gtk_container_add (GTK_CONTAINER (button), box);
     gtk_widget_set_tooltip_text (button, tooltip);
     gtk_widget_set_can_focus (button, FALSE);
@@ -234,6 +245,7 @@ toolbar_create_finder_button (const gchar *icon_name,
     GtkWidget *button = toggle ? gtk_toggle_button_new () : gtk_button_new ();
     GtkWidget *image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_SMALL_TOOLBAR);
 
+    gtk_image_set_pixel_size (GTK_IMAGE (image), FINDER_ICON_PIXELS);
     gtk_button_set_image (GTK_BUTTON (button), image);
     gtk_button_set_always_show_image (GTK_BUTTON (button), TRUE);
     gtk_activatable_set_use_action_appearance (GTK_ACTIVATABLE (button), FALSE);
@@ -343,7 +355,7 @@ action_button_clicked_cb (GtkButton *button,
     toolbar_popup_menu_at_button (self->priv->action_menu, GTK_WIDGET (button));
 }
 
-#define FINDER_SEARCH_WIDTH 220
+#define FINDER_SEARCH_WIDTH 300
 
 /* Recuperar el foco (p. ej. al refrescarse los resultados) no debe dejar el
  * texto seleccionado: lo siguiente que teclees lo reemplazaría. */
@@ -402,7 +414,10 @@ toolbar_set_finder_icon (GtkWidget *widget,
 
         g_object_get (image, "icon-size", &size, NULL);
         gtk_image_set_from_icon_name (GTK_IMAGE (image), finder_icon, size);
+        gtk_image_set_pixel_size (GTK_IMAGE (image), FINDER_ICON_PIXELS);
     } else if (!finder_layout) {
+        if (GTK_IS_IMAGE (image))
+            gtk_image_set_pixel_size (GTK_IMAGE (image), -1);
         GtkAction *action = gtk_activatable_get_related_action (activatable);
         const gchar *action_icon = (action != NULL) ? gtk_action_get_icon_name (action) : NULL;
 
@@ -438,6 +453,38 @@ toolbar_apply_finder_icons (NemoToolbar *self,
     toolbar_set_finder_icon (self->priv->show_extra_pane_button, "view-dual-symbolic", finder_layout);
 }
 
+/* En el Finder los grupos van pegados a ‹ ›: vistas, Arrange, ⚙ y opcionales;
+ * lo que sobra de ancho queda entre ellos y el campo de búsqueda. Con el
+ * layout apagado se conserva el orden de Nemo (la caja derecha después del
+ * espacio expansible). */
+static void
+toolbar_arrange_groups (NemoToolbar *self,
+                        gboolean finder_layout)
+{
+    GtkToolbar *toolbar = GTK_TOOLBAR (self->priv->toolbar);
+    GtkToolItem *item = GTK_TOOL_ITEM (self->priv->right_item);
+    gint wanted = finder_layout ? 1 : 2;
+
+    if (self->priv->right_item == NULL)
+        return;
+
+    if (gtk_toolbar_get_item_index (toolbar, item) != wanted) {
+        g_object_ref (item);
+        gtk_container_remove (GTK_CONTAINER (toolbar), GTK_WIDGET (item));
+        gtk_toolbar_insert (toolbar, item, wanted);
+        g_object_unref (item);
+    }
+
+    gtk_widget_set_margin_start (self->priv->right_item, finder_layout ? FINDER_GROUP_GAP : 6);
+
+    /* las vistas primero en el Finder; al final (tras el panel extra) en Nemo */
+    gtk_box_reorder_child (GTK_BOX (self->priv->right_box), self->priv->view_switcher,
+                           finder_layout ? 0 : 6);
+
+    gtk_widget_set_margin_start (self->priv->arrange_button, finder_layout ? 12 : 0);
+    gtk_widget_set_margin_start (self->priv->action_button, finder_layout ? 4 : 0);
+}
+
 static void
 toolbar_update_appearance (NemoToolbar *self)
 {
@@ -455,6 +502,7 @@ toolbar_update_appearance (NemoToolbar *self)
      * visibilidad del botón con la de su acción y volvería a mostrar lo que
      * el layout oculta. La visibilidad se calcula después. */
     toolbar_apply_finder_icons (self, finder_layout);
+    toolbar_arrange_groups (self, finder_layout);
 
 	show_location_entry = self->priv->show_location_entry;
 
@@ -779,6 +827,8 @@ nemo_toolbar_constructed (GObject *obj)
 
     gtk_widget_show_all (GTK_WIDGET (tool_box));
     gtk_widget_set_margin_left (GTK_WIDGET (tool_box), 6);
+    self->priv->right_item = GTK_WIDGET (tool_box);
+    self->priv->right_box = GTK_WIDGET (box);
 
     /* Campo de búsqueda fijo a la derecha (solo layout Finder) */
     tool_box = gtk_tool_item_new ();
