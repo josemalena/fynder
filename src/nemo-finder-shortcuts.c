@@ -58,6 +58,13 @@ static const FinderShortcut shortcuts[] = {
 	{ GDK_KEY_bracketleft,  CMD,         NEMO_ACTION_BACK, TRUE },
 	{ GDK_KEY_bracketright, CMD,         NEMO_ACTION_FORWARD, TRUE },
 	{ GDK_KEY_Up,           CMD,         NEMO_ACTION_UP, TRUE },
+	/* keyd (regla [fynder] de app.conf) entrega ⌘↑ como Alt+↑ y ⌘↓ como Alt+↓ */
+	{ GDK_KEY_Up,           ALT,         NEMO_ACTION_UP, TRUE },
+	{ GDK_KEY_Down,         ALT,         NEMO_ACTION_OPEN, FALSE },
+	/* keyd entrega ⌘↑ como Ctrl+Home y ⌘↓ como Ctrl+End cuando no tiene la regla de
+	 * Fynder (meta.up = A-up); así funcionan de todos modos */
+	{ GDK_KEY_Home,         CMD,         NEMO_ACTION_UP, TRUE },
+	{ GDK_KEY_End,          CMD,         NEMO_ACTION_OPEN, FALSE },
 	{ GDK_KEY_h,            CMD | SHIFT, NEMO_ACTION_HOME, TRUE },
 
 	/* Vistas: iconos, lista, columnas (la compacta) */
