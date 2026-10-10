@@ -1695,9 +1695,6 @@ nemo_icon_view_grid_container_init (NemoIconViewGridContainer *icon_container)
 	gtk_style_context_add_class (gtk_widget_get_style_context (GTK_WIDGET (icon_container)),
 				     GTK_STYLE_CLASS_VIEW);
 
-    NEMO_ICON_CONTAINER (icon_container)->details->font_size_table[NEMO_ZOOM_LEVEL_SMALL] = -1 * PANGO_SCALE;
-    NEMO_ICON_CONTAINER (icon_container)->details->font_size_table[NEMO_ZOOM_LEVEL_LARGE] =  1 * PANGO_SCALE;
-
     icon_container->text_ellipsis_limit = 2;
 }
 

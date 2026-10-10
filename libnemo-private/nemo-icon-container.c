@@ -4926,9 +4926,12 @@ nemo_icon_container_init (NemoIconContainer *container)
 	details->layout_timestamp = UNDEFINED_TIME;
 	details->zoom_level = NEMO_ZOOM_LEVEL_STANDARD;
 
-	details->font_size_table[NEMO_ZOOM_LEVEL_SMALLEST] = -2 * PANGO_SCALE;
-	details->font_size_table[NEMO_ZOOM_LEVEL_SMALLER] = -2 * PANGO_SCALE;
-	details->font_size_table[NEMO_ZOOM_LEVEL_SMALL] = -0 * PANGO_SCALE;
+	/* El zoom solo cambia el tamaño de los iconos, no el del texto: todos los
+	 * niveles usan la misma fuente (la tabla sigue existiendo por si una vista
+	 * quisiera otra cosa, pero ninguna lo hace). */
+	details->font_size_table[NEMO_ZOOM_LEVEL_SMALLEST] = 0 * PANGO_SCALE;
+	details->font_size_table[NEMO_ZOOM_LEVEL_SMALLER] = 0 * PANGO_SCALE;
+	details->font_size_table[NEMO_ZOOM_LEVEL_SMALL] = 0 * PANGO_SCALE;
 	details->font_size_table[NEMO_ZOOM_LEVEL_STANDARD] = 0 * PANGO_SCALE;
 	details->font_size_table[NEMO_ZOOM_LEVEL_LARGE] = 0 * PANGO_SCALE;
 	details->font_size_table[NEMO_ZOOM_LEVEL_LARGER] = 0 * PANGO_SCALE;
