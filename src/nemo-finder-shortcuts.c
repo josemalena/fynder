@@ -31,6 +31,7 @@ typedef struct {
 
 #define CMD   GDK_SUPER_MASK
 #define SHIFT GDK_SHIFT_MASK
+#define ALT   GDK_MOD1_MASK
 
 static const FinderShortcut shortcuts[] = {
 	/* Cmd+Delete / Cmd+Backspace: a la papelera; con Shift, vaciarla */
@@ -63,6 +64,29 @@ static const FinderShortcut shortcuts[] = {
 	{ GDK_KEY_1,            CMD,         NEMO_ACTION_ICON_VIEW, TRUE },
 	{ GDK_KEY_2,            CMD,         NEMO_ACTION_LIST_VIEW, TRUE },
 	{ GDK_KEY_3,            CMD,         NEMO_ACTION_COMPACT_VIEW, TRUE },
+
+	/* Ir a: equipo, red, servidor */
+	{ GDK_KEY_c,            CMD | SHIFT, "Go to Computer", TRUE },
+	{ GDK_KEY_k,            CMD | SHIFT, "Go to Network", TRUE },
+	{ GDK_KEY_k,            CMD,         "Connect to Server", TRUE },
+
+	/* Tamaño de los iconos (Cmd + / Cmd -; con teclado es, + sale con Shift) */
+	{ GDK_KEY_plus,         CMD,         NEMO_ACTION_ZOOM_IN, TRUE },
+	{ GDK_KEY_plus,         CMD | SHIFT, NEMO_ACTION_ZOOM_IN, TRUE },
+	{ GDK_KEY_equal,        CMD,         NEMO_ACTION_ZOOM_IN, TRUE },
+	{ GDK_KEY_minus,        CMD,         NEMO_ACTION_ZOOM_OUT, TRUE },
+	{ GDK_KEY_0,            CMD,         NEMO_ACTION_ZOOM_NORMAL, TRUE },
+
+	/* Mostrar u ocultar: lateral, barra de herramientas, ruta, barra de estado.
+	 * El Finder usa Ctrl+Cmd+S para el lateral, pero Ctrl se funde con Cmd aquí. */
+	{ GDK_KEY_s,            CMD | ALT,   NEMO_ACTION_SHOW_HIDE_SIDEBAR, TRUE },
+	{ GDK_KEY_t,            CMD | ALT,   NEMO_ACTION_SHOW_HIDE_TOOLBAR, TRUE },
+	{ GDK_KEY_p,            CMD | ALT,   NEMO_ACTION_SHOW_HIDE_PATH_BAR, TRUE },
+	{ GDK_KEY_slash,        CMD,         NEMO_ACTION_SHOW_HIDE_STATUSBAR, TRUE },
+
+	/* Alias (enlace simbólico) y expulsar */
+	{ GDK_KEY_l,            CMD,         NEMO_ACTION_CREATE_LINK, FALSE },
+	{ GDK_KEY_e,            CMD,         NEMO_ACTION_EJECT_VOLUME, FALSE },
 
 	/* Edición */
 	{ GDK_KEY_d,            CMD,         NEMO_ACTION_DUPLICATE, FALSE },
@@ -183,6 +207,12 @@ nemo_finder_shortcuts_window_level (NemoWindow *window,
 	}
 	if (mods == (CMD | GDK_MOD1_MASK) && keyval == GDK_KEY_l) {
 		go_to_folder (window, G_USER_DIRECTORY_DOWNLOAD, "Downloads");
+		return TRUE;
+	}
+
+	/* Cmd+M: minimizar */
+	if (mods == CMD && keyval == GDK_KEY_m) {
+		gtk_window_iconify (GTK_WINDOW (window));
 		return TRUE;
 	}
 
