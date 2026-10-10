@@ -229,6 +229,90 @@ nemo_finder_shortcuts_window_level (NemoWindow *window,
 	return FALSE;
 }
 
+/* Atajos que el manejador atiende a mano (sin acción en la tabla) pero que el
+ * menú debe mostrar. */
+static const FinderShortcut menu_only[] = {
+	{ GDK_KEY_g,     CMD | SHIFT, "Edit Location", TRUE },
+	{ GDK_KEY_f,     CMD,         NEMO_ACTION_SEARCH, TRUE },
+	{ GDK_KEY_m,     CMD,         "Window Minimize", TRUE },
+	{ GDK_KEY_d,     CMD | SHIFT, "Go to Desktop", TRUE },
+	{ GDK_KEY_o,     CMD | SHIFT, "Go to Documents", TRUE },
+	{ GDK_KEY_l,     CMD | ALT,   "Go to Downloads", TRUE },
+};
+
+/* En el mapa de aceleradores Cmd es Primary (Ctrl): keyd entrega Cmd+letra como
+ * Ctrl+letra, y las que llegan como Super las toma el manejador de arriba. */
+static void
+apply_accel (NemoWindow *window,
+             const FinderShortcut *sc,
+             GHashTable *done)
+{
+	GtkAction *action = find_action (window, sc->action);
+	const gchar *path;
+	GdkModifierType mods;
+	GtkAccelKey key;
+
+	if (action == NULL)
+		return;
+
+	path = gtk_action_get_accel_path (action);
+	if (path == NULL || g_hash_table_contains (done, path))
+		return;
+
+	mods = (sc->mods & ~CMD) | GDK_CONTROL_MASK;
+	if (gtk_accel_map_lookup_entry (path, &key) &&
+	    key.accel_key == sc->keyval && key.accel_mods == mods) {
+		g_hash_table_add (done, g_strdup (path));
+		return;
+	}
+
+	if (gtk_accel_map_change_entry (path, sc->keyval, mods, TRUE))
+		g_hash_table_add (done, g_strdup (path));
+}
+
+static void
+apply_menu_accels (NemoWindow *window)
+{
+	GHashTable *done = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+	gsize i;
+
+	for (i = 0; i < G_N_ELEMENTS (shortcuts); i++)
+		apply_accel (window, &shortcuts[i], done);
+	for (i = 0; i < G_N_ELEMENTS (menu_only); i++)
+		apply_accel (window, &menu_only[i], done);
+
+	g_hash_table_unref (done);
+}
+
+static gboolean
+apply_menu_accels_idle (gpointer window)
+{
+	g_object_set_data (G_OBJECT (window), "fynder-accels-idle", NULL);
+	if (g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_SHORTCUTS_FINDER_STYLE))
+		apply_menu_accels (NEMO_WINDOW (window));
+	return G_SOURCE_REMOVE;
+}
+
+static void
+actions_changed_cb (GtkUIManager *manager,
+                    NemoWindow *window)
+{
+	if (g_object_get_data (G_OBJECT (window), "fynder-accels-idle") != NULL)
+		return;
+
+	g_object_set_data (G_OBJECT (window), "fynder-accels-idle", GUINT_TO_POINTER (1));
+	g_idle_add_full (G_PRIORITY_LOW, apply_menu_accels_idle, g_object_ref (window), g_object_unref);
+}
+
+void
+nemo_finder_shortcuts_install (NemoWindow *window)
+{
+	GtkUIManager *manager = nemo_window_get_ui_manager (window);
+
+	g_signal_connect (manager, "actions-changed", G_CALLBACK (actions_changed_cb), window);
+	actions_changed_cb (manager, window);
+}
+
 gboolean
 nemo_finder_shortcuts_handle (NemoWindow *window,
                               GdkEventKey *event)

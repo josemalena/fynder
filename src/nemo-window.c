@@ -885,6 +885,7 @@ nemo_window_constructed (GObject *self)
     g_signal_connect (window, "size-allocate", G_CALLBACK (window_size_allocate_cb), NULL);
 
     nemo_global_menu_install (window);
+    nemo_finder_shortcuts_install (window);
 }
 
 static void

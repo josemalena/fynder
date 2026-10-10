@@ -13,4 +13,7 @@
 gboolean nemo_finder_shortcuts_handle (NemoWindow *window,
                                        GdkEventKey *event);
 
+/* Hace que los menús muestren (y atiendan) los atajos Finder en vez de los de Nemo. */
+void nemo_finder_shortcuts_install (NemoWindow *window);
+
 #endif /* NEMO_FINDER_SHORTCUTS_H */
