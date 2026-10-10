@@ -131,7 +131,7 @@ nemo = executable('fynder',
   install: true
 )
 
-nemo_autorun_software = executable('nemo-autorun-software',
+nemo_autorun_software = executable('fynder-autorun-software',
   [ 'nemo-autorun-software.c' ],
   include_directories: [ rootInclude, ],
   c_args: nemo_definitions,
@@ -139,7 +139,7 @@ nemo_autorun_software = executable('nemo-autorun-software',
   install: false
 )
 
-nemo_connect_server = executable('nemo-connect-server',
+nemo_connect_server = executable('fynder-connect-server',
   [
     'nemo-bookmark-list.c',
     'nemo-connect-server-dialog.c',
@@ -152,7 +152,7 @@ nemo_connect_server = executable('nemo-connect-server',
   install: false
 )
 
-nemo_open_with = executable('nemo-open-with',
+nemo_open_with = executable('fynder-open-with',
   [ 'nemo-open-with-main.c' ],
   include_directories: [ rootInclude, ],
   c_args: nemo_definitions,
@@ -161,10 +161,11 @@ nemo_open_with = executable('nemo-open-with',
 )
 
 # LibExecs
-nemo_extensions_list = executable('nemo-extensions-list',
+nemo_extensions_list = executable('fynder-extensions-list',
   [ 'nemo-extensions-list.c' ],
   include_directories: [ rootInclude, ],
   c_args: nemo_definitions,
   dependencies: [ nemo_deps ],
-  install: false,
+  install: true,
+  install_dir: get_option('libexecdir'),
 )

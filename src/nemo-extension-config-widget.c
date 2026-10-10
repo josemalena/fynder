@@ -147,7 +147,7 @@ detect_extensions (NemoExtensionConfigWidget *widget)
 {
     gchar *out = NULL;
 
-    if (g_spawn_command_line_sync (LIBEXECDIR "/nemo-extensions-list",
+    if (g_spawn_command_line_sync (LIBEXECDIR "/fynder-extensions-list",
                                    &out,
                                    NULL,
                                    NULL,
@@ -190,7 +190,7 @@ detect_extensions (NemoExtensionConfigWidget *widget)
             g_strfreev (lines);
         }
     } else {
-        g_printerr ("oops could not run nemo-extensions-list\n");
+        g_printerr ("oops could not run fynder-extensions-list\n");
     }
 }
 

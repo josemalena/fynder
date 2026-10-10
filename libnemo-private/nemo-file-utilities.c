@@ -43,7 +43,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#define NEMO_USER_DIRECTORY_NAME "nemo"
+#define NEMO_USER_DIRECTORY_NAME "fynder"
+#define NEMO_LEGACY_USER_DIRECTORY_NAME "nemo"
 
 #define DESKTOP_DIRECTORY_NAME "Desktop"
 #define LEGACY_DESKTOP_DIRECTORY_NAME ".gnome-desktop"
@@ -134,6 +135,44 @@ nemo_compute_search_title_for_location (GFile *location)
     return location_string;
 }
 
+/* Primer arranque con la carpeta propia: se copian (una sola vez) los
+ * archivos sueltos que el fork guardaba en la carpeta de Nemo, p. ej. los
+ * metadatos de marcadores y del escritorio. El archivo del orden de las
+ * acciones se queda donde está porque las acciones de usuario se comparten
+ * con Nemo. */
+static void
+copy_legacy_user_files (const char *new_directory)
+{
+	char *legacy_directory;
+	GDir *dir;
+	const char *name;
+
+	legacy_directory = g_build_filename (g_get_user_config_dir (),
+					     NEMO_LEGACY_USER_DIRECTORY_NAME, NULL);
+	dir = g_dir_open (legacy_directory, 0, NULL);
+
+	while (dir != NULL && (name = g_dir_read_name (dir)) != NULL) {
+		char *from = g_build_filename (legacy_directory, name, NULL);
+		char *to = g_build_filename (new_directory, name, NULL);
+
+		if (g_file_test (from, G_FILE_TEST_IS_REGULAR) &&
+		    g_strcmp0 (name, "actions-tree.json") != 0) {
+			GFile *source = g_file_new_for_path (from);
+			GFile *target = g_file_new_for_path (to);
+
+			g_file_copy (source, target, G_FILE_COPY_NONE, NULL, NULL, NULL, NULL);
+			g_object_unref (source);
+			g_object_unref (target);
+		}
+		g_free (from);
+		g_free (to);
+	}
+
+	if (dir != NULL)
+		g_dir_close (dir);
+	g_free (legacy_directory);
+}
+
 /**
  * nemo_get_user_directory:
  *
@@ -152,6 +191,7 @@ nemo_get_user_directory (void)
 
 	if (!g_file_test (user_directory, G_FILE_TEST_EXISTS)) {
 		g_mkdir_with_parents (user_directory, DEFAULT_NEMO_DIRECTORY_MODE);
+		copy_legacy_user_files (user_directory);
 		/* FIXME bugzilla.gnome.org 41286:
 		 * How should we handle the case where this mkdir fails?
 		 * Note that nemo_application_startup will refuse to launch if this
@@ -196,7 +236,7 @@ nemo_get_accel_map_file (void)
 char *
 nemo_get_scripts_directory_path (void)
 {
-	return g_build_filename (g_get_user_data_dir (), "nemo", "scripts", NULL);
+	return g_build_filename (g_get_user_data_dir (), "fynder", "scripts", NULL);
 }
 
 typedef struct {
