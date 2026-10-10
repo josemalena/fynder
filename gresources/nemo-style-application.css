@@ -163,6 +163,7 @@ NemoDesktopWindow GtkPaned {
 
 .nemo-finder-toolbar entry image {
     margin: 0;
+    color: #f4f4f1;             /* la lupa del Finder es casi blanca */
 }
 
 .nemo-finder-toolbar entry text {
@@ -171,7 +172,7 @@ NemoDesktopWindow GtkPaned {
 
 .nemo-finder-toolbar entry placeholder,
 .nemo-finder-toolbar entry text placeholder {
-    color: #c4c5c0;
+    color: #b3b4af;
 }
 
 .nemo-finder-toolbar entry:focus {
