@@ -403,8 +403,21 @@ toolbar_set_finder_icon (GtkWidget *widget,
         g_object_get (image, "icon-size", &size, NULL);
         gtk_image_set_from_icon_name (GTK_IMAGE (image), finder_icon, size);
     } else if (!finder_layout) {
-        gtk_activatable_sync_action_properties (activatable,
-                                                gtk_activatable_get_related_action (activatable));
+        GtkAction *action = gtk_activatable_get_related_action (activatable);
+        const gchar *action_icon = (action != NULL) ? gtk_action_get_icon_name (action) : NULL;
+
+        gtk_activatable_sync_action_properties (activatable, action);
+
+        /* La sincronización también devuelve la etiqueta de la acción («Back»…),
+         * que solo se había quitado al crear el botón: se vuelve a quitar y se
+         * restaura el icono exacto de la acción. */
+        gtk_button_set_label (button, NULL);
+        if (action_icon != NULL && GTK_IS_IMAGE (image)) {
+            GtkIconSize size = GTK_ICON_SIZE_SMALL_TOOLBAR;
+
+            g_object_get (image, "icon-size", &size, NULL);
+            gtk_image_set_from_icon_name (GTK_IMAGE (image), action_icon, size);
+        }
     }
 }
 
