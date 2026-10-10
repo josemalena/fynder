@@ -50,6 +50,7 @@ G_BEGIN_DECLS
 #define NEMO_PREFERENCES_TOOLBAR_FINDER_SHOW_DELETE "toolbar-finder-show-delete"
 #define NEMO_PREFERENCES_TOOLBAR_FINDER_SHOW_SIDEBAR "toolbar-finder-show-sidebar"
 #define NEMO_PREFERENCES_TOOLBAR_FINDER_SHOW_PATH "toolbar-finder-show-path"
+#define NEMO_PREFERENCES_FINDER_ROOT_NAME "finder-root-name"
 #define NEMO_PREFERENCES_FINDER_DIM_HIDDEN_FILES "finder-dim-hidden-files"
 #define NEMO_PREFERENCES_FINDER_SHOW_PATH_BAR "finder-show-path-bar"
 #define NEMO_PREFERENCES_SHORTCUTS_FINDER_STYLE "shortcuts-finder-style"

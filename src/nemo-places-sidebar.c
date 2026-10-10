@@ -1050,6 +1050,7 @@ update_places (NemoPlacesSidebar *sidebar)
     gint full;
     gboolean finder_sections;
     SectionType network_section;
+    char *root_name;
 
 	DEBUG ("Updating places sidebar");
 
@@ -1302,13 +1303,15 @@ update_places (NemoPlacesSidebar *sidebar)
 
         tooltip = g_strdup_printf (_("Open the contents of the File System\n%s"), tooltip_info);
         g_free (tooltip_info);
+        root_name = nemo_get_root_display_name ();
         cat_iter = add_place (sidebar, PLACES_BUILT_IN,
                                SECTION_DEVICES,
-                               _("File System"), icon,
+                               root_name, icon,
                                mount_uri, NULL, NULL, NULL, 0,
                                tooltip,
                                full, full > -1,
                                cat_iter);
+        g_free (root_name);
         g_free (tooltip);
 
         if (sidebar->bottom_bookend_uri == NULL) {
@@ -4902,6 +4905,10 @@ nemo_places_sidebar_init (NemoPlacesSidebar *sidebar)
 
 	g_signal_connect_swapped (nemo_preferences,
 				  "changed::" NEMO_PREFERENCES_SIDEBAR_FINDER_SECTIONS,
+				  G_CALLBACK(desktop_setting_changed_callback), sidebar);
+
+	g_signal_connect_swapped (nemo_preferences,
+				  "changed::" NEMO_PREFERENCES_FINDER_ROOT_NAME,
 				  G_CALLBACK(desktop_setting_changed_callback), sidebar);
 
 	g_signal_connect_swapped (nemo_preferences,

@@ -347,6 +347,11 @@
       <summary>Show Path in the Finder toolbar</summary>
       <description>Show the Path button (edit location) in the Finder-style toolbar.</description>
     </key>
+    <key name="finder-root-name" type="s">
+      <default>'Macintosh HD'</default>
+      <summary>Name shown for the main disk</summary>
+      <description>Name shown instead of "File System" for the root of the disk when Finder-style sections are enabled (sidebar, path bar and tree). Leave it empty to use "File System".</description>
+    </key>
     <key name="finder-dim-hidden-files" type="b">
       <default>true</default>
       <summary>Dim hidden files</summary>

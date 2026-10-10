@@ -1501,7 +1501,12 @@ create_tree (FMTreeView *view)
     g_object_unref (icon);
 
 	icon = g_themed_icon_new (NEMO_ICON_FILESYSTEM);
-	fm_tree_model_add_root_uri (view->details->child_model, "file:///", _("File System"), icon, NULL);
+	{
+		char *root_name = nemo_get_root_display_name ();
+
+		fm_tree_model_add_root_uri (view->details->child_model, "file:///", root_name, icon, NULL);
+		g_free (root_name);
+	}
 	g_object_unref (icon);
 #ifdef NOT_YET_USABLE /* Do we really want this? */
 	icon = g_themed_icon_new (NEMO_ICON_NETWORK);

@@ -589,6 +589,24 @@ nemo_get_desktop_directory_uri_no_create (void)
 	return desktop_uri;
 }
 
+/* Nombre del disco raíz: en modo Finder el que configure la persona
+ * (por defecto «Macintosh HD», como macOS); si está vacío, o fuera del modo
+ * Finder, «File System». */
+char *
+nemo_get_root_display_name (void)
+{
+	if (g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_SIDEBAR_FINDER_SECTIONS)) {
+		char *name = g_settings_get_string (nemo_preferences, NEMO_PREFERENCES_FINDER_ROOT_NAME);
+
+		g_strstrip (name);
+		if (name[0] != '\0')
+			return name;
+		g_free (name);
+	}
+
+	return g_strdup (_("File System"));
+}
+
 char *
 nemo_get_home_directory_uri (void)
 {

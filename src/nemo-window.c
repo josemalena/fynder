@@ -765,6 +765,10 @@ nemo_window_constructed (GObject *self)
                              "changed::" NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT,
                              G_CALLBACK (update_finder_path_bar_visibility), window,
                              G_CONNECT_SWAPPED);
+    g_signal_connect_object (nemo_preferences,
+                             "changed::" NEMO_PREFERENCES_FINDER_ROOT_NAME,
+                             G_CALLBACK (nemo_window_update_finder_path_bar), window,
+                             G_CONNECT_SWAPPED);
     update_finder_path_bar_visibility (window);
 
     GtkWidget *sep = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);

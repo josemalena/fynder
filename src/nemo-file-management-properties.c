@@ -90,6 +90,7 @@
 #define NEMO_FILE_MANAGEMENT_PROPERTIES_SHOW_COMPACT_VIEW_ICON_TOOLBAR_WIDGET "show_compact_view_icon_toolbar_togglebutton"
 #define NEMO_FILE_MANAGEMENT_PROPERTIES_SHOW_SHOW_THUMBNAILS_ICON_TOOLBAR_WIDGET "show_show_thumbnails_icon_toolbar_togglebutton"
 #define NEMO_FILE_MANAGEMENT_PROPERTIES_SHOW_TOGGLE_EXTRA_PANE_ICON_TOOLBAR_WIDGET "show_toggle_extra_pane_icon_toolbar_togglebutton"
+#define NEMO_FILE_MANAGEMENT_PROPERTIES_FINDER_ROOT_NAME_WIDGET "finder_root_name_entry"
 #define NEMO_FILE_MANAGEMENT_PROPERTIES_SHOW_FINDER_GET_INFO_WIDGET "show_finder_get_info_toolbar_togglebutton"
 #define NEMO_FILE_MANAGEMENT_PROPERTIES_SHOW_FINDER_DELETE_WIDGET "show_finder_delete_toolbar_togglebutton"
 #define NEMO_FILE_MANAGEMENT_PROPERTIES_SHOW_FINDER_SIDEBAR_WIDGET "show_finder_sidebar_toolbar_togglebutton"
@@ -935,6 +936,9 @@ nemo_file_management_properties_dialog_setup (GtkBuilder  *builder,
     bind_builder_bool (builder, nemo_preferences,
 			   NEMO_FILE_MANAGEMENT_PROPERTIES_SHOW_SHOW_THUMBNAILS_ICON_TOOLBAR_WIDGET,
 			   NEMO_PREFERENCES_SHOW_SHOW_THUMBNAILS_TOOLBAR);
+    bind_builder_string_entry (builder, nemo_preferences,
+                         NEMO_FILE_MANAGEMENT_PROPERTIES_FINDER_ROOT_NAME_WIDGET,
+                         NEMO_PREFERENCES_FINDER_ROOT_NAME);
     bind_builder_bool (builder, nemo_preferences,
 			   NEMO_FILE_MANAGEMENT_PROPERTIES_SHOW_FINDER_GET_INFO_WIDGET,
 			   NEMO_PREFERENCES_TOOLBAR_FINDER_SHOW_GET_INFO);

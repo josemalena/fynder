@@ -8,6 +8,7 @@
 #include "nemo-finder-path-bar.h"
 
 #include <glib/gi18n.h>
+#include <libnemo-private/nemo-file-utilities.h>
 
 #define MIN_WIDTH 60
 
@@ -143,7 +144,7 @@ segment_label (GFile *file,
 
 	if (is_root) {
 		if (g_strcmp0 (scheme, "file") == 0)
-			label = g_strdup (_("File System"));
+			label = nemo_get_root_display_name ();
 		else if (g_strcmp0 (scheme, "recent") == 0)
 			label = g_strdup (_("Recent"));
 		else if (g_strcmp0 (scheme, "trash") == 0)
