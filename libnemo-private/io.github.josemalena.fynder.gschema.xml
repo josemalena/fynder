@@ -387,6 +387,11 @@
       <summary>Sidebar items hidden by the user</summary>
       <description>Identifiers of the built-in sidebar items that are not shown: recent, desktop, documents, downloads, movies, music, pictures, home, computer, disks, network, trash.</description>
     </key>
+    <key name="hide-ds-store" type="b">
+      <default>true</default>
+      <summary>Never show .DS_Store files</summary>
+      <description>Fynder reads the .DS_Store files that macOS leaves in folders, so they are not listed, not even when hidden files are shown.</description>
+    </key>
     <key name="import-ds-store" type="b">
       <default>true</default>
       <summary>Use macOS folder settings (.DS_Store)</summary>

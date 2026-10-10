@@ -230,6 +230,8 @@ build_advanced_page (void)
 	gtk_box_pack_start (GTK_BOX (box), bound_check (_("Use macOS folder settings (.DS_Store) the first time a folder is opened"),
 	                                                "import-ds-store"),
 	                    FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (box), bound_check (_("Never show .DS_Store files"), "hide-ds-store"),
+	                    FALSE, FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (box), bound_check (_("Show warning before emptying the Trash"),
 	                                                NEMO_PREFERENCES_CONFIRM_TRASH),
 	                    FALSE, FALSE, 0);

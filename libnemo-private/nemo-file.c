@@ -3823,6 +3823,10 @@ nemo_file_should_show (NemoFile *file,
 	/* Never hide any files in trash. */
 	if (nemo_file_is_in_trash (file)) {
 		return TRUE;
+	} else if (g_strcmp0 (file->details->name, ".DS_Store") == 0 &&
+		   g_settings_get_boolean (nemo_preferences, "hide-ds-store")) {
+		/* Fynder lee y maneja el .DS_Store: no hace falta enseñarlo, ni con los ocultos visibles */
+		return FALSE;
 	} else {
 		return (show_hidden || !nemo_file_is_hidden_file (file)) &&
 			(show_foreign || !(nemo_file_is_in_desktop (file) && nemo_file_is_foreign_link (file)));
