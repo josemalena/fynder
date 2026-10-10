@@ -8415,7 +8415,7 @@ static const GtkActionEntry directory_view_entries[] = {
   /* tooltip */                  NULL,
 				 G_CALLBACK (action_properties_callback) },
   /* name, stock id */         { "New Folder", "xsi-folder-new-symbolic",
-  /* label, accelerator */       N_("Create New _Folder"), "<control><shift>N",
+  /* label, accelerator */       N_("New _Folder"), "<control><shift>N",
   /* tooltip */                  N_("Create a new empty folder inside this folder"),
 				 G_CALLBACK (action_new_folder_callback) },
   /* name, stock id, label */  { "No Templates", NULL, N_("No templates installed") },

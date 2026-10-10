@@ -34,6 +34,7 @@
 #include "nemo-desktop-window.h"
 #include "nemo-desktop-overlay.h"
 #include "nemo-icon-view-grid-container.h"
+#include "nemo-properties-window.h"
 #include "nemo-view-factory.h"
 #include "nemo-view.h"
 
@@ -118,6 +119,7 @@ static const DesktopSortCriterion sort_criteria[] = {
 
 static void     real_merge_menus                                  (NemoView        *view);
 static void     real_update_menus                                 (NemoView        *view);
+static gboolean macos_desktop_menu (void);
 static void     nemo_desktop_icon_grid_view_update_icon_container_fonts  (NemoDesktopIconGridView      *view);
 static void     font_changed_callback                             (gpointer                callback_data);
 static void     nemo_desktop_icon_grid_view_constructed (GObject *object);
@@ -934,6 +936,34 @@ real_update_menus (NemoView *view)
     ui_manager = nemo_view_get_ui_manager (view);
     groups = gtk_ui_manager_get_action_groups (ui_manager);
 
+    /* Menú estilo macOS: solo lo que tiene el menú del escritorio de Catalina */
+    {
+        static const char *macos_only[] = { "Desktop Get Info", "Desktop Change Background",
+                                            "Desktop Sort By Menu", "Desktop Sort None",
+                                            "Desktop Clean Up", NULL };
+        static const char *macos_hidden[] = { "Show Desktop Overlay", "OpenInTerminal", "OpenAsRoot",
+                                              "New Documents", "Show Hidden Files", NULL };
+        gboolean macos = macos_desktop_menu ();
+        gint k;
+
+        for (l = groups; l != NULL; l = l->next) {
+            GtkActionGroup *group = GTK_ACTION_GROUP (l->data);
+
+            for (k = 0; macos_only[k] != NULL; k++) {
+                action = gtk_action_group_get_action (group, macos_only[k]);
+                if (action != NULL)
+                    gtk_action_set_visible (action, macos);
+            }
+            if (macos) {
+                for (k = 0; macos_hidden[k] != NULL; k++) {
+                    action = gtk_action_group_get_action (group, macos_hidden[k]);
+                    if (action != NULL)
+                        gtk_action_set_visible (action, FALSE);
+                }
+            }
+        }
+    }
+
     /* These actions are set up in NemoIconView, but we want to replace it all with the
      * desktop submenu.  This could be avoided by creating an additional subclass of NemoIconView
      * to implement these things, but this is simpler for now.
@@ -956,6 +986,63 @@ real_update_menus (NemoView *view)
             gtk_action_set_visible (action, FALSE);
         }
     }
+}
+
+/* ---------- Menú del escritorio estilo macOS ---------- */
+
+static gboolean
+macos_desktop_menu (void)
+{
+    return g_settings_get_boolean (nemo_desktop_preferences, "finder-columns-right-to-left");
+}
+
+static void
+action_desktop_get_info (GtkAction               *action,
+                         NemoDesktopIconGridView *view)
+{
+    NemoFile *file = nemo_view_get_directory_as_file (NEMO_VIEW (view));
+    GList *files;
+
+    if (file == NULL)
+        return;
+
+    files = g_list_prepend (NULL, nemo_file_ref (file));
+    nemo_properties_window_present (files, GTK_WIDGET (view), NULL);
+    nemo_file_list_free (files);
+}
+
+static void
+action_desktop_change_background (GtkAction               *action,
+                                  NemoDesktopIconGridView *view)
+{
+    GError *error = NULL;
+
+    if (!g_spawn_command_line_async ("cinnamon-settings backgrounds", &error)) {
+        g_warning ("No se pudo abrir la configuración de fondos: %s", error->message);
+        g_error_free (error);
+    }
+}
+
+static void
+action_desktop_clean_up (GtkAction               *action,
+                         NemoDesktopIconGridView *view)
+{
+    NemoIconContainer *container = get_icon_container (view);
+
+    /* acomoda los íconos en la rejilla sin cambiar su orden */
+    if (NEMO_ICON_CONTAINER_GET_CLASS (container)->align_icons != NULL)
+        NEMO_ICON_CONTAINER_GET_CLASS (container)->align_icons (container);
+}
+
+static void
+action_desktop_sort_none (GtkAction               *action,
+                          NemoDesktopIconGridView *view)
+{
+    NemoIconContainer *container = get_icon_container (view);
+
+    /* «None»: cada ícono se queda donde se deja */
+    if (nemo_icon_container_is_auto_layout (container))
+        nemo_icon_container_set_auto_layout (container, FALSE);
 }
 
 static const GtkToggleActionEntry desktop_grid_toggle_entries[] = {
@@ -1038,6 +1125,20 @@ static const GtkActionEntry desktop_grid_entries[] = {
       /* tooltip */
       N_("Delete all items in the Trash"),
       G_CALLBACK (action_empty_trash_conditional_callback) },
+
+    { "Desktop Get Info", NULL,
+      N_("Get Info"), NULL, NULL,
+      G_CALLBACK (action_desktop_get_info) },
+    { "Desktop Change Background", NULL,
+      N_("Change Desktop Background…"), NULL, NULL,
+      G_CALLBACK (action_desktop_change_background) },
+    { "Desktop Sort By Menu", NULL, N_("Sort By"), NULL, NULL, NULL },
+    { "Desktop Sort None", NULL,
+      N_("None"), NULL, NULL,
+      G_CALLBACK (action_desktop_sort_none) },
+    { "Desktop Clean Up", NULL,
+      N_("Clean Up"), NULL, NULL,
+      G_CALLBACK (action_desktop_clean_up) },
 
     { "Show Desktop Overlay", NULL,
       N_("_Customize"), NULL,
