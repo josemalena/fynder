@@ -131,6 +131,9 @@ typedef struct {
 
 	guint bookmarks_changed_id;
 
+    gboolean icloud_expanded;
+    GtkTreePath *hover_heading_path;   /* encabezado bajo el puntero (Hide/Show) */
+    GtkCellRenderer *toggle_label_renderer;
     gboolean my_computer_expanded;
     gboolean bookmarks_expanded;
     gboolean devices_expanded;
@@ -229,6 +232,7 @@ static void  check_unmount_and_eject                   (GMount *mount,
 static void update_places                              (NemoPlacesSidebar *sidebar);
 static void update_places_on_idle                      (NemoPlacesSidebar *sidebar);
 static void update_finder_sidebar_style                (NemoPlacesSidebar *sidebar);
+static gboolean finder_sections_enabled (void);
 static void rebuild_menu                               (NemoPlacesSidebar *sidebar);
 static void actions_changed                            (gpointer user_data);
 /* Identifiers for target types */
@@ -701,7 +705,10 @@ restore_expand_state_foreach (GtkTreeModel *model,
             else
                 gtk_tree_view_collapse_row (sidebar->tree_view, path);
         } else if (section_type == SECTION_ICLOUD) {
-            gtk_tree_view_expand_to_path (sidebar->tree_view, path);
+            if (sidebar->icloud_expanded)
+                gtk_tree_view_expand_to_path (sidebar->tree_view, path);
+            else
+                gtk_tree_view_collapse_row (sidebar->tree_view, path);
         } else if (section_type == SECTION_DEVICES) {
             if (sidebar->devices_expanded)
                 gtk_tree_view_expand_to_path (sidebar->tree_view, path);
@@ -740,6 +747,9 @@ static void expand_or_collapse_category (NemoPlacesSidebar *sidebar,
             break;
         case SECTION_NETWORK:
             sidebar->network_expanded = expand;
+            break;
+        case SECTION_ICLOUD:
+            sidebar->icloud_expanded = expand;
             break;
         case SECTION_XDG_BOOKMARKS:
         default:
@@ -2022,6 +2032,8 @@ cat_is_expanded (NemoPlacesSidebar *sidebar,
             return sidebar->devices_expanded;
         case SECTION_NETWORK:
             return sidebar->network_expanded;
+        case SECTION_ICLOUD:
+            return sidebar->icloud_expanded;
         case SECTION_XDG_BOOKMARKS:
         default:
             return TRUE;
@@ -4113,6 +4125,24 @@ bookmarks_button_press_event_cb (GtkWidget             *widget,
 		return FALSE;
 	}
 
+	/* Hide / Show: clic en el texto de la derecha de un encabezado (modo Finder) */
+	if (event->button == GDK_BUTTON_PRIMARY && finder_sections_enabled ()) {
+		SectionType section;
+
+		gtk_tree_model_get (model, &iter,
+				    PLACES_SIDEBAR_COLUMN_ROW_TYPE, &row_type,
+				    PLACES_SIDEBAR_COLUMN_SECTION_TYPE, &section,
+				    -1);
+
+		if (row_type == PLACES_HEADING &&
+		    event->x > gtk_widget_get_allocated_width (widget) - 64) {
+			expand_or_collapse_category (sidebar, section, !cat_is_expanded (sidebar, section));
+			gtk_widget_queue_draw (widget);
+			gtk_tree_path_free (path);
+			return TRUE;
+		}
+	}
+
 	if (event->button == GDK_BUTTON_SECONDARY) {
 		gtk_tree_model_get (model, &iter,
 				    PLACES_SIDEBAR_COLUMN_ROW_TYPE, &row_type,
@@ -4196,6 +4226,21 @@ motion_notify_cb (GtkWidget         *widget,
 
     model = gtk_tree_view_get_model (GTK_TREE_VIEW (sidebar->tree_view));
 
+    /* encabezado bajo el puntero, para mostrar su Hide/Show */
+    {
+        GtkTreePath *hover = NULL;
+        gtk_tree_view_get_path_at_pos (GTK_TREE_VIEW (sidebar->tree_view),
+                                       (int) event->x, (int) event->y, &hover, NULL, NULL, NULL);
+        if ((hover == NULL) != (sidebar->hover_heading_path == NULL) ||
+            (hover != NULL && gtk_tree_path_compare (hover, sidebar->hover_heading_path) != 0)) {
+            gtk_tree_path_free (sidebar->hover_heading_path);
+            sidebar->hover_heading_path = hover;
+            gtk_widget_queue_draw (GTK_WIDGET (sidebar->tree_view));
+        } else {
+            gtk_tree_path_free (hover);
+        }
+    }
+
     if (over_eject_button (sidebar, event->x, event->y, &path)) {
         store_path = gtk_tree_model_filter_convert_path_to_child_path (GTK_TREE_MODEL_FILTER (model), path);
     }
@@ -4226,6 +4271,12 @@ leave_notify_cb (GtkWidget         *widget,
     g_object_get (sidebar->editable_renderer, "editing", &editing, NULL);
     if (editing) {
         return GDK_EVENT_PROPAGATE;
+    }
+
+    if (sidebar->hover_heading_path != NULL) {
+        gtk_tree_path_free (sidebar->hover_heading_path);
+        sidebar->hover_heading_path = NULL;
+        gtk_widget_queue_draw (GTK_WIDGET (sidebar->tree_view));
     }
 
     ClearHoverData data = { sidebar, NULL };
@@ -4641,6 +4692,57 @@ row_visibility_function (GtkTreeModel *model,
     return FALSE;
 }
 
+/* Texto «Hide»/«Show» al pasar el puntero por un encabezado (solo en modo
+ * Finder). */
+static void
+toggle_label_cell_renderer_func (GtkTreeViewColumn *column,
+                                 GtkCellRenderer *cell,
+                                 GtkTreeModel *model,
+                                 GtkTreeIter *iter,
+                                 gpointer user_data)
+{
+    NemoPlacesSidebar *sidebar = user_data;
+    PlaceType type;
+    SectionType section;
+
+    gtk_tree_model_get (model, iter,
+                        PLACES_SIDEBAR_COLUMN_ROW_TYPE, &type,
+                        PLACES_SIDEBAR_COLUMN_SECTION_TYPE, &section,
+                        -1);
+
+    if (type == PLACES_HEADING && finder_sections_enabled ()) {
+        GtkTreePath *path = gtk_tree_model_get_path (model, iter);
+        gboolean hovered = sidebar->hover_heading_path != NULL &&
+                           gtk_tree_path_compare (path, sidebar->hover_heading_path) == 0;
+        GdkRGBA color = { 0.56, 0.57, 0.54, 1.0 };
+
+        gtk_tree_path_free (path);
+        /* GtkCellRendererText no respeta la transparencia: sin puntero, texto vacío */
+        g_object_set (cell,
+                      "visible", TRUE,
+                      "text", !hovered ? "" : (cat_is_expanded (sidebar, section) ? _("Hide") : _("Show")),
+                      "foreground-rgba", &color,
+                      NULL);
+    } else {
+        g_object_set (cell, "visible", FALSE, NULL);
+    }
+}
+
+/* El nombre no se dibuja en las filas de encabezado: ahí el espacio es para
+ * el texto Hide/Show. */
+static void
+name_cell_renderer_func (GtkTreeViewColumn *column,
+                         GtkCellRenderer *cell,
+                         GtkTreeModel *model,
+                         GtkTreeIter *iter,
+                         gpointer user_data)
+{
+    PlaceType type;
+
+    gtk_tree_model_get (model, iter, PLACES_SIDEBAR_COLUMN_ROW_TYPE, &type, -1);
+    g_object_set (cell, "visible", !(type == PLACES_HEADING && finder_sections_enabled ()), NULL);
+}
+
 static void
 nemo_places_sidebar_init (NemoPlacesSidebar *sidebar)
 {
@@ -4674,6 +4776,7 @@ nemo_places_sidebar_init (NemoPlacesSidebar *sidebar)
                                                         NEMO_WINDOW_STATE_DEVICES_EXPANDED);
     sidebar->network_expanded = g_settings_get_boolean (nemo_window_state,
                                                         NEMO_WINDOW_STATE_NETWORK_EXPANDED);
+    sidebar->icloud_expanded = TRUE;
 
     gtk_widget_set_size_request (GTK_WIDGET (sidebar), 140, -1);
 
@@ -4762,6 +4865,20 @@ nemo_places_sidebar_init (NemoPlacesSidebar *sidebar)
               G_CALLBACK (bookmarks_edited), sidebar);
     g_signal_connect (cell, "editing-canceled",
               G_CALLBACK (bookmarks_editing_canceled), sidebar);
+    gtk_tree_view_column_set_cell_data_func (primary_column, cell,
+                                             name_cell_renderer_func, sidebar, NULL);
+
+    /* Hide / Show de los encabezados: pegado al borde derecho de la fila */
+    cell = sidebar->toggle_label_renderer = gtk_cell_renderer_text_new ();
+    gtk_tree_view_column_pack_end (primary_column, cell, TRUE);
+    g_object_set (cell,
+                  "xalign", 1.0,
+                  "xpad", 8,
+                  "scale", 0.85,
+                  "weight", PANGO_WEIGHT_SEMIBOLD,
+                  NULL);
+    gtk_tree_view_column_set_cell_data_func (primary_column, cell,
+                                             toggle_label_cell_renderer_func, sidebar, NULL);
 
     /* eject column */
     sidebar->eject_column = GTK_TREE_VIEW_COLUMN (gtk_tree_view_column_new ());
