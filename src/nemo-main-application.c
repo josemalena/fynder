@@ -507,7 +507,7 @@ open_windows (NemoMainApplication *application,
 
 		if (!do_restore || !nemo_window_restore_saved_tabs (window)) {
 			/* Fall back to a safe default location */
-			GFile *home = g_file_new_for_path (g_get_home_dir ());
+			GFile *home = nemo_get_new_window_location ();
 			nemo_window_go_to (window, home);
 			g_object_unref (home);
 		}
@@ -1046,7 +1046,7 @@ post_registration:
 		files = g_malloc0 (2 * sizeof (GFile *));
 		len = 1;
 
-		files[0] = g_file_new_for_path (g_get_home_dir ());
+		files[0] = nemo_get_new_window_location ();
 		files[1] = NULL;
 
 		/* Mark that this was a no-arg launch, not an explicit URI. */

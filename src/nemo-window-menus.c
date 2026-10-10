@@ -34,6 +34,7 @@
 #include "nemo-application.h"
 #include "nemo-connect-server-dialog.h"
 #include "nemo-file-management-properties.h"
+#include "nemo-finder-preferences.h"
 #include "nemo-navigation-action.h"
 #include "nemo-notebook.h"
 #include "nemo-window-manage-views.h"
@@ -382,7 +383,10 @@ action_preferences_callback (GtkAction *action,
 
 	window = GTK_WINDOW (user_data);
 
-	nemo_file_management_properties_dialog_show (window, NULL);
+	if (g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT))
+		nemo_finder_preferences_show (window);
+	else
+		nemo_file_management_properties_dialog_show (window, NULL);
 }
 
 static void

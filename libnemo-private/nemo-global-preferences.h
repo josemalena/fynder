@@ -57,6 +57,8 @@ G_BEGIN_DECLS
 #define NEMO_PREFERENCES_FINDER_SHOW_PATH_BAR "finder-show-path-bar"
 #define NEMO_PREFERENCES_SHORTCUTS_FINDER_STYLE "shortcuts-finder-style"
 #define NEMO_PREFERENCES_SIDEBAR_FINDER_SECTIONS "sidebar-finder-sections"
+#define NEMO_PREFERENCES_SIDEBAR_FINDER_HIDDEN_ITEMS "sidebar-finder-hidden-items"
+#define NEMO_PREFERENCES_FINDER_NEW_WINDOW_LOCATION "finder-new-window-location"
 #define NEMO_PREFERENCES_SIDEBAR_ICLOUD_PATH "sidebar-icloud-path"
 #define NEMO_PREFERENCES_DATE_FONT_CHOICE  "date-font-choice"
 #define NEMO_PREFERENCES_MONO_FONT_NAME "monospace-font-name"

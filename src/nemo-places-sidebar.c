@@ -566,6 +566,71 @@ get_finder_sidebar_icon_name (const char *uri,
     return icon_name;
 }
 
+/* Identificador estable de un ítem fijo del lateral para el ajuste
+ * «sidebar-finder-hidden-items»; NULL si el usuario no puede ocultarlo. */
+static const char *
+finder_sidebar_item_token (PlaceType place_type,
+                           const char *uri,
+                           GVolume *volume,
+                           GMount *mount)
+{
+    gchar *home_uri;
+    const char *token = NULL;
+
+    if (place_type == PLACES_MOUNTED_VOLUME || volume != NULL || mount != NULL)
+        return "disks";
+    if (uri == NULL)
+        return NULL;
+
+    home_uri = nemo_get_home_directory_uri ();
+
+    if (g_strcmp0 (uri, "recent:///") == 0)
+        token = "recent";
+    else if (g_strcmp0 (uri, "trash:///") == 0)
+        token = "trash";
+    else if (g_strcmp0 (uri, "network:///") == 0)
+        token = "network";
+    else if (g_strcmp0 (uri, "computer:///") == 0 || g_strcmp0 (uri, "file:///") == 0)
+        token = "computer";
+    else if (g_strcmp0 (uri, home_uri) == 0)
+        token = "home";
+    else if (uri_is_user_special_directory (uri, G_USER_DIRECTORY_DESKTOP))
+        token = "desktop";
+    else if (uri_is_user_special_directory (uri, G_USER_DIRECTORY_DOCUMENTS))
+        token = "documents";
+    else if (uri_is_user_special_directory (uri, G_USER_DIRECTORY_DOWNLOAD))
+        token = "downloads";
+    else if (uri_is_user_special_directory (uri, G_USER_DIRECTORY_VIDEOS))
+        token = "movies";
+    else if (uri_is_user_special_directory (uri, G_USER_DIRECTORY_MUSIC))
+        token = "music";
+    else if (uri_is_user_special_directory (uri, G_USER_DIRECTORY_PICTURES))
+        token = "pictures";
+
+    g_free (home_uri);
+    return token;
+}
+
+static gboolean
+finder_sidebar_item_hidden (PlaceType place_type,
+                            const char *uri,
+                            GVolume *volume,
+                            GMount *mount)
+{
+    const char *token = finder_sidebar_item_token (place_type, uri, volume, mount);
+    gchar **hidden;
+    gboolean result;
+
+    if (token == NULL)
+        return FALSE;
+
+    hidden = g_settings_get_strv (nemo_preferences, NEMO_PREFERENCES_SIDEBAR_FINDER_HIDDEN_ITEMS);
+    result = g_strv_contains ((const gchar * const *) hidden, token);
+    g_strfreev (hidden);
+
+    return result;
+}
+
 static GtkTreeIter
 add_place (NemoPlacesSidebar *sidebar,
 	   PlaceType place_type,
@@ -587,6 +652,10 @@ add_place (NemoPlacesSidebar *sidebar,
 	const gchar *theme_icon_name;
 	gboolean show_eject, show_unmount;
 	gboolean show_eject_button;
+
+	if (g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_SIDEBAR_FINDER_SECTIONS) &&
+	    finder_sidebar_item_hidden (place_type, uri, volume, mount))
+		return cat_iter;
 
 	cat_iter = check_heading_for_devices (sidebar, section_type, cat_iter);
 
@@ -5042,6 +5111,10 @@ nemo_places_sidebar_init (NemoPlacesSidebar *sidebar)
 
 	g_signal_connect_swapped (nemo_preferences,
 				  "changed::" NEMO_PREFERENCES_SIDEBAR_FINDER_SECTIONS,
+				  G_CALLBACK(desktop_setting_changed_callback), sidebar);
+
+	g_signal_connect_swapped (nemo_preferences,
+				  "changed::" NEMO_PREFERENCES_SIDEBAR_FINDER_HIDDEN_ITEMS,
 				  G_CALLBACK(desktop_setting_changed_callback), sidebar);
 
 	g_signal_connect_swapped (nemo_preferences,

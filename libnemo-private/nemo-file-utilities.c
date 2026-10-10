@@ -1897,3 +1897,48 @@ nemo_self_check_file_utilities (void)
 }
 
 #endif /* !NEMO_OMIT_SELF_CHECK */
+
+/* Ubicación de las ventanas nuevas según el ajuste «New windows show». Si la
+ * carpeta del usuario apunta a $HOME o no existe se usa ~/<nombre estándar>. */
+GFile *
+nemo_get_new_window_location (void)
+{
+	char *target = g_settings_get_string (nemo_preferences, "finder-new-window-location");
+	GUserDirectory directory = G_USER_N_DIRECTORIES;
+	const char *fallback = NULL;
+	GFile *location;
+
+	if (g_strcmp0 (target, "recents") == 0) {
+		location = g_file_new_for_uri ("recent:///");
+	} else if (g_strcmp0 (target, "computer") == 0) {
+		location = g_file_new_for_uri ("computer:///");
+	} else {
+		if (g_strcmp0 (target, "documents") == 0) {
+			directory = G_USER_DIRECTORY_DOCUMENTS;
+			fallback = "Documents";
+		} else if (g_strcmp0 (target, "desktop") == 0) {
+			directory = G_USER_DIRECTORY_DESKTOP;
+			fallback = "Desktop";
+		} else if (g_strcmp0 (target, "downloads") == 0) {
+			directory = G_USER_DIRECTORY_DOWNLOAD;
+			fallback = "Downloads";
+		}
+
+		if (fallback != NULL) {
+			const char *path = g_get_user_special_dir (directory);
+			char *fallback_path = NULL;
+
+			if (path == NULL || g_strcmp0 (path, g_get_home_dir ()) == 0) {
+				fallback_path = g_build_filename (g_get_home_dir (), fallback, NULL);
+				path = fallback_path;
+			}
+			location = g_file_new_for_path (path);
+			g_free (fallback_path);
+		} else {
+			location = g_file_new_for_path (g_get_home_dir ());
+		}
+	}
+
+	g_free (target);
+	return location;
+}

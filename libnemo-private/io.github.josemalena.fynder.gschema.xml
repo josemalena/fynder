@@ -382,6 +382,16 @@
       <summary>Use Finder-style sidebar sections</summary>
       <description>Show Favorites, iCloud and Locations instead of Nemo's default sidebar sections.</description>
     </key>
+    <key name="sidebar-finder-hidden-items" type="as">
+      <default>[]</default>
+      <summary>Sidebar items hidden by the user</summary>
+      <description>Identifiers of the built-in sidebar items that are not shown: recent, desktop, documents, downloads, movies, music, pictures, home, computer, disks, network, trash.</description>
+    </key>
+    <key name="finder-new-window-location" type="s">
+      <default>'home'</default>
+      <summary>Location shown by new windows</summary>
+      <description>Where a new window opens: home, documents, desktop, downloads, recents or computer.</description>
+    </key>
     <key name="sidebar-icloud-path" type="s">
       <default>''</default>
       <summary>Mounted iCloud Drive path</summary>

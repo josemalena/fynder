@@ -46,6 +46,7 @@ GFile *  nemo_get_desktop_location               (void);
 char *   nemo_get_desktop_directory_uri          (void);
 char *   nemo_get_home_directory_uri             (void);
 char *   nemo_get_root_display_name              (void);
+GFile *  nemo_get_new_window_location            (void);
 gboolean nemo_is_desktop_directory_file          (GFile *dir,
 						      const char *filename);
 gboolean nemo_is_root_directory                  (GFile *dir);
