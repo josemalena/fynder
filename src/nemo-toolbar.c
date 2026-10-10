@@ -448,6 +448,14 @@ toolbar_update_appearance (NemoToolbar *self)
 
     nemo_toolbar_update_root_state (self);
 
+    finder_layout = g_settings_get_boolean (nemo_preferences,
+                                             NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT);
+
+    /* Primero los iconos: cambiar use-action-appearance sincroniza la
+     * visibilidad del botón con la de su acción y volvería a mostrar lo que
+     * el layout oculta. La visibilidad se calcula después. */
+    toolbar_apply_finder_icons (self, finder_layout);
+
 	show_location_entry = self->priv->show_location_entry;
 
 	gtk_widget_set_visible (GTK_WIDGET(self->priv->toolbar),
@@ -545,8 +553,6 @@ toolbar_update_appearance (NemoToolbar *self)
         gtk_style_context_remove_class (gtk_widget_get_style_context (self->priv->view_switcher), "linked");
     }
 
-    finder_layout = g_settings_get_boolean (nemo_preferences,
-                                             NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT);
     if (finder_layout) {
         gtk_style_context_add_class (gtk_widget_get_style_context (GTK_WIDGET (self)), "nemo-finder-toolbar");
         gtk_style_context_add_class (gtk_widget_get_style_context (self->priv->toolbar), "nemo-finder-toolbar-inner");
@@ -567,8 +573,6 @@ toolbar_update_appearance (NemoToolbar *self)
         gtk_style_context_remove_class (gtk_widget_get_style_context (self->priv->toolbar), "nemo-finder-toolbar-inner");
         gtk_style_context_remove_class (gtk_widget_get_style_context (self->priv->navigation_box), "linked");
     }
-
-    toolbar_apply_finder_icons (self, finder_layout);
 
     /* Con el layout Finder el breadcrumb no va en el toolbar: la ruta vive en la
      * Path Bar sobre la statusbar. Solo se muestra aquí la entrada de ubicación. */
