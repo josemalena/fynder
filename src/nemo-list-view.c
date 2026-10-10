@@ -2247,6 +2247,13 @@ set_hidden_dim (GtkTreeViewColumn *column,
 	gboolean dim = FALSE;
 	GtkWidget *tree_view = gtk_tree_view_column_get_tree_view (column);
 
+	/* Filas de 19 px como en el Finder: sin el relleno vertical de 2 px del texto
+	 * (el icono mide 16 y el texto ~17, más 2 px de separación del árbol). */
+	g_object_set (renderer, "ypad",
+	              (!g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT) &&
+	               GTK_IS_CELL_RENDERER_TEXT (renderer)) ? 2 : 0,
+	              NULL);
+
 	/* Una fila oculta seleccionada se lee con el color normal de la selección:
 	 * el gris deshabilitado sobre el azul casi no se distingue. */
 	if (GTK_IS_TREE_VIEW (tree_view) &&

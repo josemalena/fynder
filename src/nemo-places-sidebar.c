@@ -4505,11 +4505,23 @@ initial_padding_cell_renderer_func (GtkTreeViewColumn *column,
         g_object_set (cell,
                       "visible", type != PLACES_HEADING,
                       "xpad", 0,
-                      "width", 12,
+                      "width", 9,
                       NULL);
     } else {
         g_object_set (cell, "visible", TRUE, "xpad", 2, "width", -1, NULL);
     }
+}
+
+/* Iconos del lateral Finder: 18 px (la altura de fila de 26 sale de 18 + 2×4). */
+static GtkIconSize
+finder_sidebar_icon_size (void)
+{
+    static GtkIconSize size = GTK_ICON_SIZE_INVALID;
+
+    if (size == GTK_ICON_SIZE_INVALID)
+        size = gtk_icon_size_register ("fynder-sidebar-finder", 18, 18);
+
+    return size;
 }
 
 static void
@@ -4533,10 +4545,10 @@ icon_cell_renderer_func (GtkTreeViewColumn *column,
 		g_object_set (cell,
 			      "visible", TRUE,
                   "xpad", 3,
-                  "ypad", finder_sections_enabled () ? 5 : 2,
+                  "ypad", finder_sections_enabled () ? 4 : 2,
 			      NULL);
 		g_object_set (cell,
-			      "stock-size", finder_sections_enabled () ? GTK_ICON_SIZE_MENU : GTK_ICON_SIZE_BUTTON,
+			      "stock-size", finder_sections_enabled () ? finder_sidebar_icon_size () : GTK_ICON_SIZE_BUTTON,
 			      NULL);
 	}
 }
@@ -4592,7 +4604,7 @@ heading_cell_renderer_func (GtkTreeViewColumn *column,
 			      "visible", TRUE,
 			      "foreground", finder_sections ? "#c3c4bf" : NULL,
 			      "foreground-set", finder_sections,
-			      "xpad", finder_sections ? 6 : 0,
+			      "xpad", finder_sections ? 4 : 0,
 			      "ypad", finder_sections ? 6 : 0,
 			      NULL);
 	} else {
