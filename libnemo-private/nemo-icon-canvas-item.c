@@ -168,6 +168,7 @@ G_DEFINE_TYPE_WITH_CODE (NemoIconCanvasItem, nemo_icon_canvas_item, EEL_TYPE_CAN
 
 /* private */
 static gboolean is_macos_desktop                     (NemoIconContainer         *container);
+#define MACOS_SELECTION_PAD 4
 static void     draw_label_text                      (NemoIconCanvasItem        *item,
 						      cairo_t                       *cr,
 						      EelIRect                       icon_rect);
@@ -586,6 +587,15 @@ recompute_bounding_box (NemoIconCanvasItem *icon_item,
 	eel_canvas_w2c_d (item->canvas,
 			  bounds_rect.x1, bounds_rect.y1,
 			  &item->x2, &item->y2);
+
+	/* el cuadro de selección del escritorio sobresale 4 px del ícono: hay que
+	 * contarlo para que se repinte y se borre entero */
+	if (is_macos_desktop (NEMO_ICON_CONTAINER (item->canvas))) {
+		item->x1 -= MACOS_SELECTION_PAD;
+		item->y1 -= MACOS_SELECTION_PAD;
+		item->x2 += MACOS_SELECTION_PAD;
+		item->y2 += MACOS_SELECTION_PAD;
+	}
 }
 
 static EelIRect
@@ -1035,15 +1045,19 @@ macos_rounded_rect (cairo_t *cr, double x, double y, double w, double h, double 
 static void
 macos_draw_icon_selection (cairo_t *cr, EelIRect icon_rect)
 {
-	/* dentro de los límites del ícono: fuera se recortaría al repintar */
-	double x = icon_rect.x0, y = icon_rect.y0;
-	double w = icon_rect.x1 - icon_rect.x0, h = icon_rect.y1 - icon_rect.y0;
+	/* 72x72: el ícono de 64 px con 4 px de aire por lado */
+	double cx = (icon_rect.x0 + icon_rect.x1) / 2.0;
+	double cy = (icon_rect.y0 + icon_rect.y1) / 2.0;
+	double size = 64 + 2 * MACOS_SELECTION_PAD;
+	double x = cx - size / 2, y = cy - size / 2;
 
 	cairo_save (cr);
-	macos_rounded_rect (cr, x + 1, y + 1, w - 2, h - 2, 4);
-	cairo_set_source_rgba (cr, 0, 0, 0, 0.35);
-	cairo_fill_preserve (cr);
-	cairo_set_source_rgb (cr, 0.78, 0.78, 0.78);
+	macos_rounded_rect (cr, x, y, size, size, 5);
+	cairo_set_source_rgba (cr, 0, 0, 0, 0.33);
+	cairo_fill (cr);
+	/* borde blanco al 30 %, de 2 px, hacia dentro del contorno */
+	macos_rounded_rect (cr, x + 1, y + 1, size - 2, size - 2, 4);
+	cairo_set_source_rgba (cr, 1, 1, 1, 0.30);
 	cairo_set_line_width (cr, 2);
 	cairo_stroke (cr);
 	cairo_restore (cr);
@@ -1055,7 +1069,7 @@ macos_draw_label (cairo_t *cr, PangoLayout *layout, double x, double y, gboolean
 	cairo_save (cr);
 	if (selected) {
 		/* texto gris oscuro sobre la píldora, sin sombra */
-		cairo_set_source_rgb (cr, 0.17, 0.17, 0.17);
+		cairo_set_source_rgb (cr, 0.33, 0.33, 0.33);
 		cairo_move_to (cr, x, y);
 		pango_cairo_show_layout (cr, layout);
 	} else {
@@ -1092,6 +1106,8 @@ draw_label_text (NemoIconCanvasItem *item,
 	int max_text_width;
 	gdouble frame_w, frame_h, frame_x, frame_y;
 	gboolean draw_frame = TRUE;
+	gboolean macos_pill_active = FALSE;
+	double macos_pill_y = 0;
 
 #ifdef PERFORMANCE_TEST_DRAW_DISABLE
 	return;
@@ -1176,10 +1192,28 @@ draw_label_text (NemoIconCanvasItem *item,
 	}
 
 	if (draw_frame && is_macos_desktop (container)) {
-		if (needs_highlight && !details->is_renaming) {
+		if (needs_highlight && !details->is_renaming && have_editable) {
+			/* píldora ajustada al texto real: 3 px de aire por lado, a 6 px bajo
+			 * el ícono (2 px libres bajo el cuadro de selección) */
+			PangoLayout *pill_layout = get_label_layout (&item->details->editable_text_layout,
+			                                             item, item->details->editable_text);
+			int lw, lh;
+			double pill_w, pill_h, pill_x;
+			double center = text_rect.x0 + ((text_rect.x1 - text_rect.x0) - max_text_width) / 2 + max_text_width / 2.0;
+
+			prepare_pango_layout_for_draw (item, pill_layout);
+			pango_layout_get_pixel_size (pill_layout, &lw, &lh);
+			g_object_unref (pill_layout);
+
+			pill_w = lw + 6;
+			pill_h = lh + 3;
+			pill_x = center - pill_w / 2;
+			macos_pill_y = icon_rect.y1 + 6;
+			macos_pill_active = TRUE;
+
 			cairo_save (cr);
-			macos_rounded_rect (cr, frame_x, frame_y, frame_w, frame_h, 4);
-			cairo_set_source_rgb (cr, 0.78, 0.78, 0.78);
+			macos_rounded_rect (cr, pill_x, macos_pill_y, pill_w, pill_h, 3);
+			cairo_set_source_rgb (cr, 0.792, 0.792, 0.792);
 			cairo_fill (cr);
 			cairo_restore (cr);
 		}
@@ -1221,7 +1255,9 @@ draw_label_text (NemoIconCanvasItem *item,
 		prepare_pango_layout_for_draw (item, editable_layout);
 
 		if (is_macos_desktop (container)) {
-			macos_draw_label (cr, editable_layout, x, y, needs_highlight);
+			/* con la píldora, el texto baja a su interior (1.5 px de aire arriba) */
+			macos_draw_label (cr, editable_layout, x, macos_pill_active ? macos_pill_y + 1.5 : y,
+			                  needs_highlight);
 		} else {
 			gtk_style_context_save (context);
 			gtk_style_context_set_state (context, state);
