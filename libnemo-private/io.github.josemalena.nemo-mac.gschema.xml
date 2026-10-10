@@ -347,6 +347,11 @@
       <summary>Show Path in the Finder toolbar</summary>
       <description>Show the Path button (edit location) in the Finder-style toolbar.</description>
     </key>
+    <key name="toolbar-finder-group-gap" type="i">
+      <default>-1</default>
+      <summary>Gap between the navigation buttons and the view buttons</summary>
+      <description>Space, in pixels, between the back/forward buttons and the view buttons of the Finder-style toolbar. -1 (default) makes it proportional to the window width (about 11%, between 40 and 160 pixels).</description>
+    </key>
     <key name="global-menu" type="b">
       <default>false</default>
       <summary>Publish the menu bar in the desktop panel</summary>

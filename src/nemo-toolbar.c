@@ -124,8 +124,12 @@ nemo_toolbar_update_root_state (NemoToolbar *self)
 }
 
 /* Medidas del toolbar Finder (en píxeles) */
-#define FINDER_ICON_PIXELS 22
-#define FINDER_GROUP_GAP 56
+#define FINDER_ICON_PIXELS 32
+#define FINDER_CHEVRON_PIXELS 14
+/* Hueco entre ‹ › y las vistas: fracción del ancho, con mínimo y máximo */
+#define FINDER_GAP_FRACTION_PERMILLE 113
+#define FINDER_GAP_MIN 40
+#define FINDER_GAP_MAX 160
 
 #define ARRANGE_ITEMS_PATH "/MenuBar/View/View Items Placeholder/Arrange Items"
 
@@ -141,7 +145,7 @@ toolbar_create_menu_button (const gchar *icon_name,
         GtkWidget *chevron = gtk_image_new_from_icon_name ("pan-down-symbolic", GTK_ICON_SIZE_MENU);
 
         gtk_image_set_pixel_size (GTK_IMAGE (icon), FINDER_ICON_PIXELS);
-        gtk_image_set_pixel_size (GTK_IMAGE (chevron), 12);
+        gtk_image_set_pixel_size (GTK_IMAGE (chevron), FINDER_CHEVRON_PIXELS);
         gtk_container_add (GTK_CONTAINER (box), icon);
         gtk_container_add (GTK_CONTAINER (box), chevron);
     }
@@ -458,6 +462,38 @@ toolbar_apply_finder_icons (NemoToolbar *self,
  * layout apagado se conserva el orden de Nemo (la caja derecha después del
  * espacio expansible). */
 static void
+toolbar_update_group_gap (NemoToolbar *self)
+{
+    gint gap = g_settings_get_int (nemo_preferences, NEMO_PREFERENCES_TOOLBAR_FINDER_GROUP_GAP);
+
+    if (self->priv->right_item == NULL)
+        return;
+
+    if (!g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT)) {
+        gtk_widget_set_margin_start (self->priv->right_item, 6);
+        return;
+    }
+
+    if (gap < 0) {
+        gap = gtk_widget_get_allocated_width (self->priv->toolbar) * FINDER_GAP_FRACTION_PERMILLE / 1000;
+        gap = CLAMP (gap, FINDER_GAP_MIN, FINDER_GAP_MAX);
+    }
+
+    /* el margen no depende del ancho disponible para el propio hueco, así que
+     * no entra en bucle de redimensionado */
+    if (gtk_widget_get_margin_start (self->priv->right_item) != gap)
+        gtk_widget_set_margin_start (self->priv->right_item, gap);
+}
+
+static void
+toolbar_size_allocate_cb (GtkWidget *widget,
+                          GdkRectangle *allocation,
+                          NemoToolbar *self)
+{
+    toolbar_update_group_gap (self);
+}
+
+static void
 toolbar_arrange_groups (NemoToolbar *self,
                         gboolean finder_layout)
 {
@@ -475,7 +511,7 @@ toolbar_arrange_groups (NemoToolbar *self,
         g_object_unref (item);
     }
 
-    gtk_widget_set_margin_start (self->priv->right_item, finder_layout ? FINDER_GROUP_GAP : 6);
+    toolbar_update_group_gap (self);
 
     /* las vistas primero en el Finder; al final (tras el panel extra) en Nemo */
     gtk_box_reorder_child (GTK_BOX (self->priv->right_box), self->priv->view_switcher,
@@ -700,6 +736,7 @@ nemo_toolbar_constructed (GObject *obj)
 
 	toolbar = gtk_toolbar_new ();
 	self->priv->toolbar = toolbar;
+    g_signal_connect (toolbar, "size-allocate", G_CALLBACK (toolbar_size_allocate_cb), self);
     gtk_box_pack_start (GTK_BOX (self), self->priv->toolbar, TRUE, TRUE, 0);
 
 	context = gtk_widget_get_style_context (GTK_WIDGET(toolbar));

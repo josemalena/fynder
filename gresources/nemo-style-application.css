@@ -87,9 +87,9 @@ NemoDesktopWindow GtkPaned {
 }
 
 .nemo-finder-toolbar button {
-    min-width: 36px;
-    min-height: 30px;
-    padding: 0 7px;
+    min-width: 40px;
+    min-height: 36px;
+    padding: 0 9px;
     margin: 2px;
     border-radius: 5px;
     background-color: #666762;
@@ -123,7 +123,7 @@ NemoDesktopWindow GtkPaned {
 }
 
 .nemo-finder-toolbar entry {
-    min-height: 30px;
+    min-height: 36px;
     margin: 2px;
     border-radius: 6px;
     background-color: #2f302d;
