@@ -18,6 +18,7 @@
 		<placeholder name="Open Placeholder"/>
 		<separator/>
 		<placeholder name="Location Placeholder"/>
+		<menuitem name="Add Bookmark File" action="Add Bookmark"/>
 		<separator/>
 		<placeholder name="File Items Placeholder"/>
 		<separator/>

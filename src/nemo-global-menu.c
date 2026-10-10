@@ -418,12 +418,9 @@ build_app_menu (GlobalMenu *gm,
 		item = ensure_item (gm, widget, app_menu_items[i].name, used);
 		detailed = g_strdup_printf ("win.%s", item->name);
 		menu_item = g_menu_item_new (_(app_menu_items[i].label), detailed);
-		/* oculto si la acción no está disponible (vaciar papelera sin papelera) */
-		if (!gtk_widget_get_visible (widget)) {
-			g_object_unref (menu_item);
-			g_free (detailed);
-			continue;
-		}
+		/* como en el Finder, los ítems fuera de contexto (Empty Trash… con la
+		 * papelera vacía) se publican igual y salen en gris: ensure_item copia
+		 * la sensibilidad del widget aunque esté oculto. */
 		set_accel (menu_item, GTK_MENU_ITEM (widget));
 		g_menu_append_item (section, menu_item);
 		g_object_unref (menu_item);

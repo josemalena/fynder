@@ -209,6 +209,25 @@ action_go_to_downloads_callback (GtkAction *action,
 	go_to_user_dir (NEMO_WINDOW (user_data), G_USER_DIRECTORY_DOWNLOAD, "Downloads");
 }
 
+/* El Finder no tiene menú de marcadores: en el layout Finder se esconde. */
+static void
+update_bookmarks_menu_visibility (GtkActionGroup *action_group)
+{
+	GtkAction *action = gtk_action_group_get_action (action_group, "Bookmarks");
+
+	if (action != NULL)
+		gtk_action_set_visible (action, !g_settings_get_boolean (nemo_preferences,
+									 NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT));
+}
+
+static void
+finder_layout_changed_for_menus (GtkActionGroup *action_group,
+				 const gchar *key,
+				 GSettings *settings)
+{
+	update_bookmarks_menu_visibility (action_group);
+}
+
 static void
 action_window_minimize_callback (GtkAction *action,
 				 gpointer user_data)
@@ -2015,6 +2034,11 @@ nemo_window_initialize_menus (NemoWindow *window)
 	gtk_action_group_add_actions (action_group,
 				      main_entries, G_N_ELEMENTS (main_entries),
 				      window);
+
+	update_bookmarks_menu_visibility (action_group);
+	g_signal_connect_object (nemo_preferences, "changed::" NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT,
+				 G_CALLBACK (finder_layout_changed_for_menus), action_group,
+				 G_CONNECT_SWAPPED);
 
       /* if root then hide menu items that do not work */
     if (nemo_user_is_root () && !nemo_treating_root_as_normal ()) {
