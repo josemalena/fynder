@@ -167,6 +167,7 @@ G_DEFINE_TYPE_WITH_CODE (NemoIconCanvasItem, nemo_icon_canvas_item, EEL_TYPE_CAN
 						nemo_icon_canvas_item_text_interface_init));
 
 /* private */
+static gboolean is_macos_desktop                     (NemoIconContainer         *container);
 static void     draw_label_text                      (NemoIconCanvasItem        *item,
 						      cairo_t                       *cr,
 						      EelIRect                       icon_rect);
@@ -827,7 +828,9 @@ prepare_pango_layout_width (NemoIconCanvasItem *item,
 		pango_layout_set_width (layout, -1);
 	} else {
 		pango_layout_set_width (layout, floor (nemo_icon_canvas_item_get_max_text_width (item)) * PANGO_SCALE);
-		pango_layout_set_ellipsize (layout, PANGO_ELLIPSIZE_END);
+		pango_layout_set_ellipsize (layout,
+		                            is_macos_desktop (NEMO_ICON_CONTAINER (EEL_CANVAS_ITEM (item)->canvas)) ?
+		                                PANGO_ELLIPSIZE_MIDDLE : PANGO_ELLIPSIZE_END);
 	}
 }
 
@@ -1006,6 +1009,71 @@ measure_label_text (NemoIconCanvasItem *item)
 	}
 }
 
+/* ---------- Escritorio estilo macOS ----------
+ *
+ * Etiqueta blanca con sombra suave y sin fondo; seleccionado, el ícono va en
+ * un cuadro redondeado negro al 35 % con borde gris claro, y la etiqueta en
+ * una píldora gris claro con texto oscuro (no el azul de las ventanas). */
+
+static gboolean
+is_macos_desktop (NemoIconContainer *container)
+{
+	return container->details->is_desktop && container->details->desktop_right_to_left;
+}
+
+static void
+macos_rounded_rect (cairo_t *cr, double x, double y, double w, double h, double r)
+{
+	cairo_new_sub_path (cr);
+	cairo_arc (cr, x + w - r, y + r, r, -G_PI / 2, 0);
+	cairo_arc (cr, x + w - r, y + h - r, r, 0, G_PI / 2);
+	cairo_arc (cr, x + r, y + h - r, r, G_PI / 2, G_PI);
+	cairo_arc (cr, x + r, y + r, r, G_PI, 3 * G_PI / 2);
+	cairo_close_path (cr);
+}
+
+static void
+macos_draw_icon_selection (cairo_t *cr, EelIRect icon_rect)
+{
+	/* dentro de los límites del ícono: fuera se recortaría al repintar */
+	double x = icon_rect.x0, y = icon_rect.y0;
+	double w = icon_rect.x1 - icon_rect.x0, h = icon_rect.y1 - icon_rect.y0;
+
+	cairo_save (cr);
+	macos_rounded_rect (cr, x + 1, y + 1, w - 2, h - 2, 4);
+	cairo_set_source_rgba (cr, 0, 0, 0, 0.35);
+	cairo_fill_preserve (cr);
+	cairo_set_source_rgb (cr, 0.78, 0.78, 0.78);
+	cairo_set_line_width (cr, 2);
+	cairo_stroke (cr);
+	cairo_restore (cr);
+}
+
+static void
+macos_draw_label (cairo_t *cr, PangoLayout *layout, double x, double y, gboolean selected)
+{
+	cairo_save (cr);
+	if (selected) {
+		/* texto gris oscuro sobre la píldora, sin sombra */
+		cairo_set_source_rgb (cr, 0.17, 0.17, 0.17);
+		cairo_move_to (cr, x, y);
+		pango_cairo_show_layout (cr, layout);
+	} else {
+		/* sombra oscura suave (varias pasadas tenues) y el texto blanco encima */
+		cairo_set_source_rgba (cr, 0, 0, 0, 0.28);
+		cairo_move_to (cr, x, y + 1);
+		pango_cairo_show_layout (cr, layout);
+		cairo_move_to (cr, x + 1, y + 1);
+		pango_cairo_show_layout (cr, layout);
+		cairo_move_to (cr, x - 1, y + 1);
+		pango_cairo_show_layout (cr, layout);
+		cairo_set_source_rgb (cr, 1, 1, 1);
+		cairo_move_to (cr, x, y);
+		pango_cairo_show_layout (cr, layout);
+	}
+	cairo_restore (cr);
+}
+
 static void
 draw_label_text (NemoIconCanvasItem *item,
                  cairo_t *cr,
@@ -1107,7 +1175,15 @@ draw_label_text (NemoIconCanvasItem *item,
 		draw_frame = FALSE;
 	}
 
-	if (draw_frame) {
+	if (draw_frame && is_macos_desktop (container)) {
+		if (needs_highlight && !details->is_renaming) {
+			cairo_save (cr);
+			macos_rounded_rect (cr, frame_x, frame_y, frame_w, frame_h, 4);
+			cairo_set_source_rgb (cr, 0.78, 0.78, 0.78);
+			cairo_fill (cr);
+			cairo_restore (cr);
+		}
+	} else if (draw_frame) {
 		gtk_style_context_save (context);
 		gtk_style_context_set_state (context, state);
 
@@ -1144,14 +1220,18 @@ draw_label_text (NemoIconCanvasItem *item,
 		editable_layout = get_label_layout (&item->details->editable_text_layout, item, item->details->editable_text);
 		prepare_pango_layout_for_draw (item, editable_layout);
 
-		gtk_style_context_save (context);
-		gtk_style_context_set_state (context, state);
+		if (is_macos_desktop (container)) {
+			macos_draw_label (cr, editable_layout, x, y, needs_highlight);
+		} else {
+			gtk_style_context_save (context);
+			gtk_style_context_set_state (context, state);
 
-		gtk_render_layout (context, cr,
-				   x, y,
-				   editable_layout);
+			gtk_render_layout (context, cr,
+					   x, y,
+					   editable_layout);
 
-		gtk_style_context_restore (context);
+			gtk_style_context_restore (context);
+		}
 	}
 
 	if (have_additional &&
@@ -1416,6 +1496,12 @@ nemo_icon_canvas_item_draw (EelCanvasItem *item,
 	}
 
 	icon_rect = icon_item->details->canvas_rect;
+
+	if (is_macos_desktop (container) && details->is_highlighted_for_selection &&
+	    !details->is_renaming) {
+		macos_draw_icon_selection (cr, icon_rect);
+	}
+
 	temp_surface = map_surface (icon_item);
 
     gtk_render_icon_surface (context, cr,
@@ -2075,7 +2161,11 @@ nemo_icon_canvas_item_get_max_text_width (NemoIconCanvasItem *item)
         }
     } else {
         /* normal icon view */
-        if (container->details->is_desktop) {
+        if (is_macos_desktop (container)) {
+            /* ancho fijo de la etiqueta como en macOS: así el ícono siempre queda
+             * centrado en su celda sin importar el largo del nombre */
+            return 110;
+        } else if (container->details->is_desktop) {
             return nemo_get_desktop_text_width_for_zoom_level (nemo_icon_container_get_zoom_level (container));
         } else {
             return nemo_get_icon_text_width_for_zoom_level (nemo_icon_container_get_zoom_level (container));
