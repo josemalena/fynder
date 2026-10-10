@@ -48,6 +48,10 @@ NemoDesktopWindow GtkPaned {
     color: #f0f0ed;
 }
 
+.nemo-finder-sidebar-tree.view {
+    font-size: 13px;
+}
+
 /* El resaltado de la fila lo dibuja nemo-places-sidebar.c (una sola píldora). */
 .nemo-finder-sidebar-tree,
 .nemo-finder-sidebar-tree.view,
@@ -77,11 +81,13 @@ NemoDesktopWindow GtkPaned {
     background-color: #373834;
 }
 
-/* Finder toolbar: enabled only by toolbar-finder-layout. */
+/* Finder toolbar: enabled only by toolbar-finder-layout.
+ * Medidas del Finder de Catalina a 1x: botones de 22 px de alto (20 + borde de
+ * 1 px), ‹ › de 25 px cada uno, vistas de 27, Arrange y ⚙ de 46, la barra de
+ * unos 32 px y 8 px al borde. */
 .nemo-finder-toolbar,
 .nemo-finder-toolbar-inner.primary-toolbar {
-    padding-top: 0;
-    padding-bottom: 0;
+    padding: 5px 8px;
     background-color: #474844;
     background-image: none;
     border-color: #292a28;
@@ -89,10 +95,10 @@ NemoDesktopWindow GtkPaned {
 }
 
 .nemo-finder-toolbar button {
-    min-width: 40px;
-    min-height: 34px;           /* + 2 px de borde = 36 px, la altura de la barra de Nemo */
-    padding: 0 9px;
-    margin: 0 2px;
+    min-width: 21px;
+    min-height: 20px;
+    padding: 0 1px;
+    margin: 0;
     border-radius: 5px;
     background-color: #666762;
     background-image: none;
@@ -107,28 +113,43 @@ NemoDesktopWindow GtkPaned {
 }
 
 .nemo-finder-toolbar .linked > button {
-    margin-left: 0;
-    margin-right: 0;
+    margin: 0;
     border-radius: 0;
 }
 
 .nemo-finder-toolbar .linked > button:first-child {
-    margin-left: 2px;
     border-top-left-radius: 5px;
     border-bottom-left-radius: 5px;
 }
 
 .nemo-finder-toolbar .linked > button:last-child {
-    margin-right: 2px;
     border-top-right-radius: 5px;
     border-bottom-right-radius: 5px;
 }
 
+/* vistas: 27 px por segmento */
+.nemo-finder-toolbar .nemo-finder-views > button {
+    min-width: 23px;
+}
+
+/* Arrange ▾ y ⚙ ▾: 46 px (icono de 16 + flecha de 8 + relleno) */
+.nemo-finder-toolbar button.nemo-finder-menubutton {
+    min-width: 26px;
+    padding: 0 9px;
+}
+
+/* opcionales (Get Info, Delete, Sidebar, Path): 38 px */
+.nemo-finder-toolbar button.nemo-finder-optbutton {
+    min-width: 34px;
+}
+
+/* búsqueda: 323 × 22 px (el tema le pone un borde de 3 px: 16 + 6 = 22) */
 .nemo-finder-toolbar entry {
-    min-height: 30px;           /* + 6 px del borde de 3 px del tema = 36 px */
+    min-height: 16px;
     padding-top: 0;
     padding-bottom: 0;
-    margin: 0 2px;
+    margin: 0;
+    font-size: 11px;
     border-radius: 6px;
     background-color: #2f302d;
     background-image: none;
@@ -144,7 +165,7 @@ NemoDesktopWindow GtkPaned {
 /* Finder Path Bar: franja encima de la statusbar (finder-show-path-bar). */
 nemo-finder-path-bar,
 .nemo-finder-pathbar {
-    padding: 3px 10px;
+    padding: 3px 12px 2px;      /* 22 px de alto con el borde de arriba */
     border-top: 1px solid #292a28;
     background-color: #3b3c38;
     color: #b9bab5;
