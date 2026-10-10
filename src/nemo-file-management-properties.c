@@ -165,6 +165,7 @@ static const char * const date_format_values[] = {
 	"locale",
 	"iso",
 	"informal",
+	"finder",
 	NULL
 };
 
@@ -516,6 +517,11 @@ create_date_format_menu (GtkBuilder *builder)
 
 	gtk_combo_box_text_append_text (combo_box, _("Yesterday"));
 
+	/* Estilo Finder: «Today, 9:48 PM» */
+	date_string = g_date_time_format (now, _("Today, %-l:%M %p"));
+	gtk_combo_box_text_append_text (combo_box, date_string);
+	g_free (date_string);
+
 	g_date_time_unref (now);
 }
 
@@ -855,6 +861,7 @@ on_date_format_combo_changed (GtkComboBox *widget,
             gtk_widget_set_sensitive (GTK_WIDGET (gtk_builder_get_object (builder, NEMO_FILE_MANAGEMENT_PROPERTIES_DATE_FONT_CHOICE_WIDGET)), TRUE);
             break;
         case NEMO_DATE_FORMAT_INFORMAL:
+        case NEMO_DATE_FORMAT_FINDER:
         default:
             gtk_widget_set_sensitive (GTK_WIDGET (gtk_builder_get_object (builder, NEMO_FILE_MANAGEMENT_PROPERTIES_DATE_FONT_CHOICE_WIDGET)), FALSE);
             break;
