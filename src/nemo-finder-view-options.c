@@ -7,6 +7,7 @@
 
 #include "nemo-finder-view-options.h"
 
+#include "nemo-desktop-icon-grid-view.h"
 #include "nemo-list-view.h"
 #include "nemo-view.h"
 #include "nemo-window-private.h"
@@ -64,6 +65,19 @@ reverse_toggled_cb (GtkToggleButton *button,
 		nemo_list_view_set_sort (view, current, gtk_toggle_button_get_active (button));
 }
 
+static void
+desktop_text_size_changed_cb (GtkSpinButton *spin,
+                              gpointer user_data)
+{
+	PangoFontDescription *desc = g_object_get_data (G_OBJECT (spin), "font-desc");
+	char *font;
+
+	pango_font_description_set_size (desc, (int) gtk_spin_button_get_value (spin) * PANGO_SCALE);
+	font = pango_font_description_to_string (desc);
+	g_settings_set_string (nemo_desktop_preferences, "font", font);
+	g_free (font);
+}
+
 static GtkWidget *
 labeled_row (const char *text,
              GtkWidget *widget)
@@ -106,9 +120,11 @@ nemo_finder_view_options_show (NemoWindow *window)
 	gtk_container_add (GTK_CONTAINER (options_window), box);
 
 	if (nemo_view_supports_zooming (view)) {
+		gboolean is_desktop = NEMO_IS_DESKTOP_ICON_GRID_VIEW (view);
+		/* el escritorio tiene íconos de 24, 32, 48, 64 y 96 px */
 		GtkWidget *scale = gtk_scale_new_with_range (GTK_ORIENTATION_HORIZONTAL,
-		                                              NEMO_ZOOM_LEVEL_SMALLEST,
-		                                              NEMO_ZOOM_LEVEL_LARGEST, 1);
+		                                              is_desktop ? NEMO_ZOOM_LEVEL_SMALLER : NEMO_ZOOM_LEVEL_SMALLEST,
+		                                              is_desktop ? NEMO_ZOOM_LEVEL_LARGER : NEMO_ZOOM_LEVEL_LARGEST, 1);
 
 		gtk_scale_set_draw_value (GTK_SCALE (scale), FALSE);
 		gtk_scale_set_digits (GTK_SCALE (scale), 0);
@@ -137,6 +153,31 @@ nemo_finder_view_options_show (NemoWindow *window)
 		gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check), reversed);
 		g_signal_connect (check, "toggled", G_CALLBACK (reverse_toggled_cb), view);
 		gtk_box_pack_start (GTK_BOX (box), labeled_row ("", check), FALSE, FALSE, 0);
+	}
+
+	if (NEMO_IS_DESKTOP_ICON_GRID_VIEW (view)) {
+		GtkWidget *h_scale = gtk_scale_new_with_range (GTK_ORIENTATION_HORIZONTAL, 0.5, 1.5, 0.05);
+		GtkWidget *v_scale = gtk_scale_new_with_range (GTK_ORIENTATION_HORIZONTAL, 0.5, 1.5, 0.05);
+		GtkWidget *font_spin = gtk_spin_button_new_with_range (10, 16, 1);
+		char *font = g_settings_get_string (nemo_desktop_preferences, "font");
+		PangoFontDescription *desc = pango_font_description_from_string (font);
+		int size = pango_font_description_get_size (desc) / PANGO_SCALE;
+
+		gtk_scale_set_draw_value (GTK_SCALE (h_scale), FALSE);
+		gtk_scale_set_draw_value (GTK_SCALE (v_scale), FALSE);
+		g_settings_bind (nemo_desktop_preferences, "horizontal-grid-adjust",
+		                 gtk_range_get_adjustment (GTK_RANGE (h_scale)), "value", G_SETTINGS_BIND_DEFAULT);
+		g_settings_bind (nemo_desktop_preferences, "vertical-grid-adjust",
+		                 gtk_range_get_adjustment (GTK_RANGE (v_scale)), "value", G_SETTINGS_BIND_DEFAULT);
+		gtk_box_pack_start (GTK_BOX (box), labeled_row (_("Grid spacing:"), h_scale), FALSE, FALSE, 0);
+		gtk_box_pack_start (GTK_BOX (box), labeled_row ("", v_scale), FALSE, FALSE, 0);
+
+		gtk_spin_button_set_value (GTK_SPIN_BUTTON (font_spin), size > 0 ? size : 12);
+		g_object_set_data_full (G_OBJECT (font_spin), "font-desc", desc,
+		                        (GDestroyNotify) pango_font_description_free);
+		g_signal_connect (font_spin, "value-changed", G_CALLBACK (desktop_text_size_changed_cb), NULL);
+		gtk_box_pack_start (GTK_BOX (box), labeled_row (_("Text size:"), font_spin), FALSE, FALSE, 0);
+		g_free (font);
 	}
 
 	check = gtk_check_button_new_with_label (_("Keep folders on top"));

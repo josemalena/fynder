@@ -35,6 +35,7 @@
 #include "nemo-desktop-overlay.h"
 #include "nemo-icon-view-grid-container.h"
 #include "nemo-properties-window.h"
+#include "nemo-finder-view-options.h"
 #include "nemo-view-factory.h"
 #include "nemo-view.h"
 
@@ -940,7 +941,7 @@ real_update_menus (NemoView *view)
     {
         static const char *macos_only[] = { "Desktop Get Info", "Desktop Change Background",
                                             "Desktop Sort By Menu", "Desktop Sort None",
-                                            "Desktop Clean Up", NULL };
+                                            "Desktop Clean Up", "Desktop View Options", NULL };
         static const char *macos_hidden[] = { "Show Desktop Overlay", "OpenInTerminal", "OpenAsRoot",
                                               "New Documents", "Show Hidden Files", NULL };
         gboolean macos = macos_desktop_menu ();
@@ -1021,6 +1022,16 @@ action_desktop_change_background (GtkAction               *action,
         g_warning ("No se pudo abrir la configuración de fondos: %s", error->message);
         g_error_free (error);
     }
+}
+
+static void
+action_desktop_view_options (GtkAction               *action,
+                             NemoDesktopIconGridView *view)
+{
+    NemoWindow *window = nemo_view_get_nemo_window (NEMO_VIEW (view));
+
+    if (window != NULL)
+        nemo_finder_view_options_show (window);
 }
 
 static void
@@ -1139,6 +1150,9 @@ static const GtkActionEntry desktop_grid_entries[] = {
     { "Desktop Clean Up", NULL,
       N_("Clean Up"), NULL, NULL,
       G_CALLBACK (action_desktop_clean_up) },
+    { "Desktop View Options", NULL,
+      N_("Show View Options"), NULL, NULL,
+      G_CALLBACK (action_desktop_view_options) },
 
     { "Show Desktop Overlay", NULL,
       N_("_Customize"), NULL,

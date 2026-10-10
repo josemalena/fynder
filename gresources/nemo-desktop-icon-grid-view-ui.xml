@@ -24,6 +24,8 @@
                 <menuitem name="Desktop Sort by Size" action="Desktop Sort by Size"/>
             </menu>
             <menuitem name="Desktop Clean Up" action="Desktop Clean Up"/>
+            <separator/>
+            <menuitem name="Desktop View Options" action="Desktop View Options"/>
         </placeholder>
     </placeholder>
 </popup>
