@@ -755,7 +755,9 @@ nemo_window_constructed (GObject *self)
     /* Path Bar estilo Finder: franja encima de la statusbar (apagada por defecto) */
     window->details->finder_path_bar = nemo_finder_path_bar_new ();
     gtk_widget_set_no_show_all (window->details->finder_path_bar, TRUE);
-    gtk_container_add (GTK_CONTAINER (grid), window->details->finder_path_bar);
+    /* Va en la columna de contenido (a la derecha del lateral, que baja hasta la
+     * statusbar), no a todo el ancho de la ventana. */
+    gtk_box_pack_start (GTK_BOX (vbox), window->details->finder_path_bar, FALSE, FALSE, 0);
     g_signal_connect (window->details->finder_path_bar, "location-clicked",
                       G_CALLBACK (finder_path_bar_clicked_cb), window);
     g_signal_connect_object (nemo_preferences,
