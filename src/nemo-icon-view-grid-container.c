@@ -262,7 +262,7 @@ nemo_icon_view_grid_container_get_icon_text (NemoIconContainer *container,
 	use_additional = (additional_text != NULL);
 
     /* Strip the suffix for nemo object xml files. */
-    *editable_text = nemo_file_get_display_name (file);
+    *editable_text = nemo_file_get_listing_name (file);
 
     if (!use_additional) {
         return;

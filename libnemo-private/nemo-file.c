@@ -4198,6 +4198,38 @@ nemo_file_get_display_name (NemoFile *file)
 	return g_strdup (nemo_file_peek_display_name (file));
 }
 
+/* Nombre para mostrar en las vistas: con «Show all filename extensions»
+ * apagado se quita la extensión de los archivos (no de las carpetas). El
+ * renombrado sigue usando nemo_file_get_display_name, con el nombre completo. */
+char *
+nemo_file_get_listing_name (NemoFile *file)
+{
+	char *name = nemo_file_get_display_name (file);
+	char *dot;
+	const char *ext;
+	gsize ext_len;
+
+	if (g_settings_get_boolean (nemo_preferences, "finder-show-all-extensions") ||
+	    nemo_file_is_directory (file))
+		return name;
+
+	dot = strrchr (name, '.');
+	if (dot == NULL || dot == name)
+		return name;
+
+	ext = dot + 1;
+	ext_len = strlen (ext);
+	if (ext_len == 0 || ext_len > 8)
+		return name;
+	for (; *ext != '\0'; ext++) {
+		if (!g_ascii_isalnum (*ext))
+			return name;
+	}
+
+	*dot = '\0';
+	return name;
+}
+
 char *
 nemo_file_get_edit_name (NemoFile *file)
 {

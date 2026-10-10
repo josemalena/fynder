@@ -512,8 +512,11 @@ open_windows (NemoMainApplication *application,
 			g_object_unref (home);
 		}
 	} else {
-		if (open_in_existing_window) {
-			/* Open one tab at each requested location in an existing window */
+		if (open_in_existing_window ||
+		    (!open_in_tabs &&
+		     g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_FINDER_OPEN_IN_TABS))) {
+			/* Open one tab at each requested location in an existing window
+			 * (también cuando «Open folders in tabs» está encendido) */
 			open_tabs_in_existing_window (application, files, n_files, screen, geometry);
 		} else if (open_in_tabs) {
 			/* Open one window with one tab at each requested location */
@@ -536,6 +539,15 @@ nemo_main_application_open_location (NemoApplication     *application,
 {
 	NemoWindow *window;
 	GList *sel_list = NULL;
+
+	if (g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_FINDER_OPEN_IN_TABS)) {
+		GFile *locations[1] = { location };
+
+		/* abre una pestaña en la ventana activa (o una ventana nueva si no hay) */
+		open_tabs_in_existing_window (NEMO_MAIN_APPLICATION (application), locations, 1,
+		                              gdk_screen_get_default (), NULL);
+		return;
+	}
 
 	window = nemo_main_application_create_window (application, gdk_screen_get_default ());
 	gtk_window_set_startup_id (GTK_WINDOW (window), startup_id);

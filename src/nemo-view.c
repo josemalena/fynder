@@ -2322,6 +2322,16 @@ nemo_view_should_sort_favorites_first (NemoView *view)
 	return view->details->sort_favorites_first;
 }
 
+/* «Show all filename extensions» cambió: las vistas rehacen sus nombres. */
+static void
+show_all_extensions_changed_callback (NemoView *view)
+{
+	NemoWindowSlot *slot = nemo_view_get_nemo_window_slot (view);
+
+	if (slot != NULL)
+		nemo_window_slot_queue_reload (slot, FALSE);
+}
+
 static void
 sort_directories_first_changed_callback (gpointer callback_data)
 {
@@ -2832,6 +2842,9 @@ nemo_view_init (NemoView *view)
                   G_CALLBACK(click_to_rename_changed_callback),
                   view);
 	g_signal_connect_swapped (nemo_preferences,
+				  "changed::" NEMO_PREFERENCES_FINDER_SHOW_ALL_EXTENSIONS,
+				  G_CALLBACK (show_all_extensions_changed_callback), view);
+	g_signal_connect_swapped (nemo_preferences,
 				  "changed::" NEMO_PREFERENCES_SORT_DIRECTORIES_FIRST,
 				  G_CALLBACK(sort_directories_first_changed_callback), view);
 	g_signal_connect_swapped (nemo_preferences,
@@ -3032,6 +3045,8 @@ nemo_view_finalize (GObject *object)
 					      click_policy_changed_callback, view);
     g_signal_handlers_disconnect_by_func (nemo_preferences,
                           click_to_rename_changed_callback, view);
+	g_signal_handlers_disconnect_by_func (nemo_preferences,
+					      show_all_extensions_changed_callback, view);
 	g_signal_handlers_disconnect_by_func (nemo_preferences,
 					      sort_directories_first_changed_callback, view);
 	g_signal_handlers_disconnect_by_func (nemo_preferences,

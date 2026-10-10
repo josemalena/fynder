@@ -102,6 +102,9 @@ build_general_page (void)
 	gtk_box_pack_start (GTK_BOX (row), combo, FALSE, FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (box), row, FALSE, FALSE, 0);
 
+	gtk_box_pack_start (GTK_BOX (box), bound_check (_("Open folders in tabs instead of new windows"),
+	                                                NEMO_PREFERENCES_FINDER_OPEN_IN_TABS),
+	                    FALSE, FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (box), bound_check (_("Restore the last windows and tabs on startup"),
 	                                                NEMO_PREFERENCES_RESTORE_TABS_ON_STARTUP),
 	                    FALSE, FALSE, 0);
@@ -204,6 +207,9 @@ build_advanced_page (void)
 	GtkWidget *box = page_box ();
 	GtkWidget *button = gtk_button_new_with_label (_("More Options…"));
 
+	gtk_box_pack_start (GTK_BOX (box), bound_check (_("Show all filename extensions"),
+	                                                NEMO_PREFERENCES_FINDER_SHOW_ALL_EXTENSIONS),
+	                    FALSE, FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (box), bound_check (_("Show warning before emptying the Trash"),
 	                                                NEMO_PREFERENCES_CONFIRM_TRASH),
 	                    FALSE, FALSE, 0);

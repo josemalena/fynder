@@ -478,6 +478,14 @@ nemo_window_slot_open_location_full (NemoWindowSlot *slot,
 		use_same |= g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_ALWAYS_USE_BROWSER);
 	}
 
+	/* «Open folders in tabs instead of new windows» */
+	if (!is_desktop && (flags & NEMO_WINDOW_OPEN_FLAG_NEW_WINDOW) != 0 &&
+	    g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_FINDER_OPEN_IN_TABS)) {
+		flags ^= NEMO_WINDOW_OPEN_FLAG_NEW_WINDOW;
+		flags |= NEMO_WINDOW_OPEN_FLAG_NEW_TAB;
+		use_same = TRUE;
+	}
+
 	g_assert (!((flags & NEMO_WINDOW_OPEN_FLAG_NEW_WINDOW) != 0 &&
 		    (flags & NEMO_WINDOW_OPEN_FLAG_NEW_TAB) != 0));
 

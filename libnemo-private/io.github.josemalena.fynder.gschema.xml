@@ -387,6 +387,16 @@
       <summary>Sidebar items hidden by the user</summary>
       <description>Identifiers of the built-in sidebar items that are not shown: recent, desktop, documents, downloads, movies, music, pictures, home, computer, disks, network, trash.</description>
     </key>
+    <key name="finder-open-in-tabs" type="b">
+      <default>false</default>
+      <summary>Open folders in tabs instead of new windows</summary>
+      <description>When on, commands that would open a folder in a new window (Open in New Window, Command-double-click, folders opened from other applications) open a new tab in the active window instead.</description>
+    </key>
+    <key name="finder-show-all-extensions" type="b">
+      <default>true</default>
+      <summary>Show all filename extensions</summary>
+      <description>When off, file names in icon and list views are shown without their extension. The full name is still shown when renaming.</description>
+    </key>
     <key name="finder-new-window-location" type="s">
       <default>'home'</default>
       <summary>Location shown by new windows</summary>

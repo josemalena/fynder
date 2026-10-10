@@ -6926,6 +6926,7 @@ nemo_icon_container_start_renaming_selected_item (NemoIconContainer *container,
 	PangoContext *context;
 	PangoFontDescription *desc;
 	const char *editable_text;
+	char *full_name = NULL;
 	int x, y, width;
 	int start_offset, end_offset;
 
@@ -6956,6 +6957,10 @@ nemo_icon_container_start_renaming_selected_item (NemoIconContainer *container,
 
 	/* Make a copy of the original editable text for a later compare */
 	editable_text = nemo_icon_canvas_item_get_editable_text (icon->item);
+	/* con las extensiones ocultas, el renombrado trabaja con el nombre completo */
+	full_name = NEMO_IS_FILE (icon->data) ? nemo_file_get_display_name (NEMO_FILE (icon->data)) : NULL;
+	if (full_name != NULL)
+		editable_text = full_name;
 
 	/* This could conceivably be NULL if a rename was triggered really early. */
 	if (editable_text == NULL) {
@@ -7065,6 +7070,7 @@ nemo_icon_container_start_renaming_selected_item (NemoIconContainer *container,
 	/* We are in renaming mode */
 	details->renaming = TRUE;
 	nemo_icon_canvas_item_set_renaming (icon->item, TRUE);
+	g_free (full_name);
 }
 
 NemoIcon *

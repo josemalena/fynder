@@ -465,6 +465,8 @@ nemo_list_model_get_value (GtkTreeModel *tree_model, GtkTreeIter *iter, int colu
 			if (file != NULL) {
                 if (attribute == attribute_search_result_count_q) {
                     str = nemo_file_get_search_result_count_as_string (file, (gpointer) model->details->view_dir);
+                } else if (attribute == attribute_name_q) {
+                    str = nemo_file_get_listing_name (file);
                 } else {
                     str = nemo_file_get_string_attribute_with_default_q (file, attribute);
                 }

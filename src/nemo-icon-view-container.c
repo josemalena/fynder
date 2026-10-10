@@ -344,7 +344,7 @@ nemo_icon_view_container_get_icon_text (NemoIconContainer *container,
         }
 	} else {
 		/* Strip the suffix for nemo object xml files. */
-		*editable_text = nemo_file_get_display_name (file);
+		*editable_text = nemo_file_get_listing_name (file);
         if (pinned) {
             *pinned = nemo_file_get_pinning (file) && !nemo_file_is_in_favorites (file);
         }

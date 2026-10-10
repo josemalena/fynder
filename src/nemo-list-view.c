@@ -1724,6 +1724,25 @@ cell_renderer_editing_started_cb (GtkCellRenderer *renderer,
 	entry = GTK_ENTRY (editable);
 	list_view->details->editable_widget = editable;
 
+	/* con las extensiones ocultas, el renombrado trabaja con el nombre completo */
+	if (!g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_FINDER_SHOW_ALL_EXTENSIONS)) {
+		GtkTreePath *rename_path = gtk_tree_path_new_from_string (path_str);
+		NemoFile *rename_file = nemo_list_model_file_for_path (list_view->details->model, rename_path);
+
+		if (rename_file != NULL) {
+			char *full_name = nemo_file_get_display_name (rename_file);
+			int start_offset = 0, end_offset = -1;
+
+			gtk_entry_set_text (entry, full_name);
+			if (!nemo_file_is_directory (rename_file))
+				eel_filename_get_rename_region (full_name, &start_offset, &end_offset);
+			gtk_editable_select_region (GTK_EDITABLE (entry), start_offset, end_offset);
+			g_free (full_name);
+			nemo_file_unref (rename_file);
+		}
+		gtk_tree_path_free (rename_path);
+	}
+
 	/* Free a previously allocated original_name */
 	g_free (list_view->details->original_name);
 
