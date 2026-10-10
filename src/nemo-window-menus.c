@@ -29,6 +29,7 @@
 
 #include <locale.h>
 
+#include "fynder-build-number.h"
 #include "nemo-window-menus.h"
 #include "nemo-actions.h"
 #include "nemo-application.h"
@@ -425,7 +426,7 @@ action_about_nemo_callback (GtkAction *action,
 
 	gtk_show_about_dialog (GTK_WINDOW (user_data),
 			       "program-name", _("Fynder"),
-			       "version", VERSION,
+			       "version", VERSION " (build " G_STRINGIFY (FYNDER_BUILD_NUMBER) ")",
 			       "comments", _("Fynder lets you organize "
 					     "files and folders, both on "
 					     "your computer and online.\n\n"

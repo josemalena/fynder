@@ -24,6 +24,7 @@
 
 #include <config.h>
 
+#include "fynder-build-number.h"
 #include "nemo-main-application.h"
 
 #if ENABLE_EMPTY_VIEW
@@ -940,7 +941,7 @@ nemo_main_application_local_command_line (GApplication *application,
 	}
 
 	if (version) {
-		g_print ("nemo " VERSION "\n");
+		g_print ("fynder " VERSION " (build %d, %s)\n", FYNDER_BUILD_NUMBER, FYNDER_BUILD_DATE);
 		goto out;
 	}
 

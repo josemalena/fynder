@@ -111,7 +111,15 @@ if enableEmptyView
   nemoCommon_sources += 'nemo-empty-view.c'
 endif
 
-nemo_deps = [ cinnamon, gail, glib, gtk, math,
+# Número de compilación: sube en cada build y sale en «fynder --version» y en el About.
+fynder_build_number = custom_target('fynder-build-number',
+  output: 'fynder-build-number.h',
+  command: [ find_program('sh'), files('gen-build-number.sh'), '@OUTPUT@' ],
+  build_always_stale: true,
+  build_by_default: true,
+)
+
+nemo_deps = [ declare_dependency (sources: fynder_build_number), cinnamon, gail, glib, gtk, math,
   egg, nemo_extension, nemo_private, xapp ]
 
 if exempi_enabled
