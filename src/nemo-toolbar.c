@@ -66,6 +66,7 @@ struct _NemoToolbarPriv {
     GtkWidget *delete_button;
     GtkWidget *sidebar_button;
     GtkWidget *path_button;
+    GtkWidget *left_item;       /* GtkToolItem de ‹ › */
     GtkWidget *right_item;      /* GtkToolItem de la caja derecha */
     GtkWidget *right_box;
     GtkWidget *search_item;
@@ -130,6 +131,11 @@ nemo_toolbar_update_root_state (NemoToolbar *self)
 #define FINDER_GAP_FRACTION_PERMILLE 113
 #define FINDER_GAP_MIN 40
 #define FINDER_GAP_MAX 160
+/* Con poco ancho primero se achica el hueco (hasta GAP_FLOOR) y después la
+ * búsqueda (hasta SEARCH_MIN) antes de que algo caiga al desbordamiento. */
+#define FINDER_GAP_FLOOR 8
+#define FINDER_SEARCH_MIN 140
+#define FINDER_TOOLBAR_SLACK 16
 
 #define ARRANGE_ITEMS_PATH "/MenuBar/View/View Items Placeholder/Arrange Items"
 
@@ -461,12 +467,16 @@ toolbar_apply_finder_icons (NemoToolbar *self,
  * lo que sobra de ancho queda entre ellos y el campo de búsqueda. Con el
  * layout apagado se conserva el orden de Nemo (la caja derecha después del
  * espacio expansible). */
+/* Reparte el ancho del toolbar entre el hueco que sigue a ‹ › y el campo de
+ * búsqueda. «width» es el ancho NUEVO: dentro de size-allocate el widget aún
+ * conserva el anterior, así que se pasa el de la señal. */
 static void
-toolbar_update_group_gap (NemoToolbar *self)
+toolbar_update_layout (NemoToolbar *self,
+                       gint width)
 {
-    gint gap = g_settings_get_int (nemo_preferences, NEMO_PREFERENCES_TOOLBAR_FINDER_GROUP_GAP);
+    gint desired, gap, search_w, fixed, avail, left_w = 0, group_w = 0;
 
-    if (self->priv->right_item == NULL)
+    if (self->priv->right_item == NULL || self->priv->left_item == NULL)
         return;
 
     if (!g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT)) {
@@ -474,15 +484,30 @@ toolbar_update_group_gap (NemoToolbar *self)
         return;
     }
 
-    if (gap < 0) {
-        gap = gtk_widget_get_allocated_width (self->priv->toolbar) * FINDER_GAP_FRACTION_PERMILLE / 1000;
-        gap = CLAMP (gap, FINDER_GAP_MIN, FINDER_GAP_MAX);
+    desired = g_settings_get_int (nemo_preferences, NEMO_PREFERENCES_TOOLBAR_FINDER_GROUP_GAP);
+    if (desired < 0)
+        desired = CLAMP (width * FINDER_GAP_FRACTION_PERMILLE / 1000, FINDER_GAP_MIN, FINDER_GAP_MAX);
+
+    gtk_widget_get_preferred_width (self->priv->left_item, NULL, &left_w);
+    gtk_widget_get_preferred_width (self->priv->right_item, NULL, &group_w);
+    /* el tamaño preferido incluye el margen que se está calculando */
+    group_w -= gtk_widget_get_margin_start (self->priv->right_item);
+
+    fixed = left_w + group_w + 6 + FINDER_TOOLBAR_SLACK;
+    avail = width - fixed;
+
+    gap = desired;
+    search_w = FINDER_SEARCH_WIDTH;
+
+    if (gap + search_w > avail) {
+        gap = CLAMP (avail - search_w, FINDER_GAP_FLOOR, desired);
+        if (gap + search_w > avail)
+            search_w = MAX (avail - gap, FINDER_SEARCH_MIN);
     }
 
-    /* el margen no depende del ancho disponible para el propio hueco, así que
-     * no entra en bucle de redimensionado */
     if (gtk_widget_get_margin_start (self->priv->right_item) != gap)
         gtk_widget_set_margin_start (self->priv->right_item, gap);
+    gtk_widget_set_size_request (self->priv->search_entry, search_w, -1);
 }
 
 static void
@@ -490,7 +515,7 @@ toolbar_size_allocate_cb (GtkWidget *widget,
                           GdkRectangle *allocation,
                           NemoToolbar *self)
 {
-    toolbar_update_group_gap (self);
+    toolbar_update_layout (self, allocation->width);
 }
 
 static void
@@ -511,7 +536,7 @@ toolbar_arrange_groups (NemoToolbar *self,
         g_object_unref (item);
     }
 
-    toolbar_update_group_gap (self);
+    toolbar_update_layout (self, gtk_widget_get_allocated_width (self->priv->toolbar));
 
     /* las vistas primero en el Finder; al final (tras el panel extra) en Nemo */
     gtk_box_reorder_child (GTK_BOX (self->priv->right_box), self->priv->view_switcher,
@@ -770,6 +795,7 @@ nemo_toolbar_constructed (GObject *obj)
 
     gtk_widget_show_all (GTK_WIDGET (tool_box));
     gtk_widget_set_margin_right (GTK_WIDGET (tool_box), 6);
+    self->priv->left_item = GTK_WIDGET (tool_box);
 
     /* Container to hold the location and pathbars */
     self->priv->stack = gtk_stack_new();
