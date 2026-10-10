@@ -81,6 +81,11 @@ struct NemoWindowDetails
         gchar *sidebar_id;
 
         gboolean show_sidebar;
+        /* ocultado automático del lateral en ventanas angostas */
+        gboolean sidebar_auto_hidden;
+        gboolean sidebar_manual_override;
+        guint sidebar_auto_idle_id;
+        gint last_alloc_width;
 
         /* Toolbar */
         GtkWidget *toolbar;

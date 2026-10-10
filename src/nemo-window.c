@@ -643,6 +643,61 @@ nemo_window_update_finder_path_bar (NemoWindow *window)
                                        slot != NULL ? slot->location : NULL);
 }
 
+/* Como el Finder, el lateral desaparece cuando la ventana se vuelve muy
+ * angosta y vuelve al ensancharla. No se guarda como preferencia: es un
+ * ocultado temporal. Un margen entre los dos anchos evita parpadeos. */
+#define SIDEBAR_AUTO_HIDE_WIDTH 460
+#define SIDEBAR_AUTO_SHOW_WIDTH 520
+
+static gboolean
+sidebar_auto_idle_cb (gpointer data)
+{
+    NemoWindow *window = data;
+    gint width = window->details->last_alloc_width;
+
+    window->details->sidebar_auto_idle_id = 0;
+
+    if (window->details->disable_chrome || NEMO_IS_DESKTOP_WINDOW (window))
+        return G_SOURCE_REMOVE;
+
+    if (window->details->sidebar_auto_hidden) {
+        if (window->details->sidebar != NULL) {
+            /* la persona lo mostró a mano: se respeta mientras siga angosta */
+            window->details->sidebar_auto_hidden = FALSE;
+            window->details->sidebar_manual_override = TRUE;
+        } else if (width >= SIDEBAR_AUTO_SHOW_WIDTH) {
+            window->details->sidebar_auto_hidden = FALSE;
+            nemo_window_show_sidebar (window);
+        }
+    } else if (window->details->sidebar_manual_override) {
+        if (width >= SIDEBAR_AUTO_SHOW_WIDTH)
+            window->details->sidebar_manual_override = FALSE;
+    } else if (window->details->sidebar != NULL && width < SIDEBAR_AUTO_HIDE_WIDTH) {
+        window->details->sidebar_auto_hidden = TRUE;
+        nemo_window_hide_sidebar (window);
+    }
+
+    return G_SOURCE_REMOVE;
+}
+
+/* El cambio se hace en un idle: mostrar u ocultar widgets dentro de
+ * size-allocate no vuelve a asignar. */
+static void
+window_size_allocate_cb (GtkWidget *widget,
+                         GdkRectangle *allocation,
+                         gpointer user_data)
+{
+    NemoWindow *window = NEMO_WINDOW (widget);
+
+    if (allocation->width < 100)
+        return;
+
+    window->details->last_alloc_width = allocation->width;
+
+    if (window->details->sidebar_auto_idle_id == 0)
+        window->details->sidebar_auto_idle_id = g_idle_add (sidebar_auto_idle_cb, window);
+}
+
 static void
 nemo_window_constructed (GObject *self)
 {
@@ -827,6 +882,8 @@ nemo_window_constructed (GObject *self)
                               G_CALLBACK (nemo_window_reload),
                               window);
 
+    g_signal_connect (window, "size-allocate", G_CALLBACK (window_size_allocate_cb), NULL);
+
     nemo_global_menu_install (window);
 }
 
@@ -901,6 +958,13 @@ nemo_window_destroy (GtkWidget *object)
 	window = NEMO_WINDOW (object);
 
 	DEBUG ("Destroying window");
+
+	g_clear_handle_id (&window->details->sidebar_auto_idle_id, g_source_remove);
+
+	/* si el lateral estaba oculto solo por lo angosta que era la ventana, la
+	 * preferencia vuelve a «mostrar» para el próximo arranque */
+	if (window->details->sidebar_auto_hidden)
+		g_settings_set_boolean (nemo_window_state, NEMO_WINDOW_STATE_START_WITH_SIDEBAR, TRUE);
 
 	/* close the sidebar first */
 	nemo_window_tear_down_sidebar (window);
