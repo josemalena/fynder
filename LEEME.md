@@ -11,7 +11,7 @@ lleva a un usuario de macOS Catalina a Linux Mint.
 ## Qué cambia respecto a Nemo
 
 - **Barra de herramientas como la del Finder:** atrás y adelante, las vistas
-  (íconos, lista, columnas y compacta), Arrange, la acción ⚙ y una búsqueda
+  (íconos, lista, compacta y Gallery), Arrange, la acción ⚙ y una búsqueda
   que se encoge en ventanas angostas; lo que no cabe va al menú «»».
 - **Lateral como el del Finder:** secciones Favorites y Locations con
   encabezados que se esconden (Hide/Show), y el lateral que se oculta solo
@@ -25,6 +25,8 @@ lleva a un usuario de macOS Catalina a Linux Mint.
 - **Menú global:** con la opción `global-menu`, publica su barra de menús por
   D-Bus (GMenuModel) para que el panel la pinte arriba, como en macOS,
   incluido el menú propio de la app (About, Preferences…, Empty Trash…).
+- **Gallery (⌘4):** tira de miniaturas abajo y vista previa grande del archivo
+  seleccionado arriba.
 - **Preferencias como las del Finder** (General, Sidebar, Advanced) y View
   Options (⌘J).
 - **Identidad propia:** ejecutable `fynder`, app id
@@ -34,6 +36,16 @@ lleva a un usuario de macOS Catalina a Linux Mint.
 El aspecto (colores, íconos, fuentes) no viene aquí: lo pone el tema
 Constanza de mint-macos. Fynder no trae imágenes, íconos ni fuentes de Apple;
 el tema los genera en la máquina del usuario a partir de su propia Mac.
+
+## Pendiente
+
+- **Vista de columnas:** todavía no existe. El botón con el glifo de columnas
+  abre la vista compacta de Nemo, y el menú la llama «as Compact».
+- **Gallery:** falta el panel de información de la derecha; la tira muestra
+  solo miniaturas, sin nombres; el zoom (⌘+ y ⌘-) y el control de la barra de
+  estado no cambian su tamaño; y no aparece en la vista por defecto de las
+  Preferencias completas.
+- **Editor de la barra de herramientas** (Customize Toolbar): la barra es fija.
 
 ## Compilar e instalar (en ~/.local, sin sudo)
 
