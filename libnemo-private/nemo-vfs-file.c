@@ -322,6 +322,15 @@ vfs_file_get_date (NemoFile *file,
             *date = file->details->btime;
         }
         return TRUE;
+	case NEMO_DATE_TYPE_ADDED:
+		/* Before we have info on a file, the date is unknown. */
+		if (file->details->added_time == 0) {
+			return FALSE;
+		}
+		if (date != NULL) {
+			*date = file->details->added_time;
+		}
+		return TRUE;
 	case NEMO_DATE_TYPE_TRASHED:
 		/* Before we have info on a file, the date is unknown. */
 		if (file->details->trash_time == 0) {

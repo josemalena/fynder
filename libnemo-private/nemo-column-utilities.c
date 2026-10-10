@@ -99,6 +99,14 @@ get_builtin_columns (void)
 
 	columns = g_list_append (columns,
 				 g_object_new (NEMO_TYPE_COLUMN,
+					       "name", "date_added",
+					       "attribute", "date_added",
+					       "label", _("Date Added"),
+					       "description", _("The date the file was added to its folder."),
+					       NULL));
+
+	columns = g_list_append (columns,
+				 g_object_new (NEMO_TYPE_COLUMN,
 					       "name", "date_accessed",
 					       "attribute", "date_accessed",
 					       "label", _("Date Accessed"),

@@ -4399,6 +4399,20 @@ get_target_file_for_display_name (GFile *dir,
 	return dest;
 }
 
+/* Date Added al estilo del Finder: lo que se copia o se mueve a una carpeta recibe
+ * la fecha del momento en un atributo extendido oculto (user.fynder.date-added).
+ * Si el sistema de archivos no soporta atributos no pasa nada, y la vista cae a la
+ * fecha de creación. Solo se marca el elemento de primer nivel, no su contenido. */
+static void
+stamp_date_added (GFile *dest)
+{
+	char *value = g_strdup_printf ("%" G_GINT64_FORMAT, (gint64) (g_get_real_time () / G_USEC_PER_SEC));
+
+	g_file_set_attribute_string (dest, "xattr::fynder.date-added", value,
+				     G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS, NULL, NULL);
+	g_free (value);
+}
+
 /* Debuting files is non-NULL only for toplevel items */
 static void
 copy_move_file (CopyMoveJob *copy_job,
@@ -4578,6 +4592,7 @@ copy_move_file (CopyMoveJob *copy_job,
 		report_copy_progress (copy_job, source_info, transfer_info);
 
         if (debuting_files) {
+            stamp_date_added (dest);
             if (target_is_desktop && position) {
                 nemo_file_changes_queue_schedule_position_set (dest, *position, job->monitor_num);
             } else if (source_is_desktop && copy_job->is_move) {
@@ -5292,6 +5307,7 @@ move_file_prepare (CopyMoveJob *move_job,
         g_free (src_uri);
         g_free (dest_uri);
 
+		stamp_date_added (dest);
 		nemo_file_changes_queue_file_moved (src, dest);
 
         if (target_is_desktop && position) {

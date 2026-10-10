@@ -33,7 +33,7 @@
 #include <eel/eel-string.h>
 
 #define NEMO_FILE_DEFAULT_ATTRIBUTES				\
-	"standard::*,access::*,mountable::*,time::*,unix::*,owner::*,selinux::*,thumbnail::*,id::filesystem,trash::orig-path,trash::deletion-date,metadata::*,preview::icon"
+	"standard::*,access::*,mountable::*,time::*,unix::*,owner::*,selinux::*,thumbnail::*,id::filesystem,trash::orig-path,trash::deletion-date,metadata::*,preview::icon,xattr::com.apple.metadata:kMDItemDateAdded,xattr::fynder.date-added"
 
 /* These are in the typical sort order. Known things come first, then
  * things where we can't know, finally things where we don't yet know.
@@ -86,6 +86,7 @@ struct NemoFileDetails
 	time_t mtime; /* 0 is unknown */
 	time_t ctime; /* 0 is unknown */
     time_t btime; /* 0 is unknown */
+    time_t added_time; /* fecha en que se añadió a la carpeta; 0 es desconocida */
 	
 	char *symlink_name;
 	

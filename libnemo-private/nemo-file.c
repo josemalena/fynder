@@ -141,6 +141,8 @@ static GQuark attribute_name_q,
     attribute_date_created_q,
     attribute_date_created_full_q,
     attribute_date_created_with_time_q,
+    attribute_date_added_q,
+    attribute_date_added_full_q,
 	attribute_mime_type_q,
 	attribute_size_detail_q,
 	attribute_deep_size_q,
@@ -2267,6 +2269,105 @@ access_ok (const gchar *path)
     return TRUE;
 }
 
+/* ---------- Date Added ----------
+ *
+ * macOS guarda «Date Added» en el atributo extendido
+ * com.apple.metadata:kMDItemDateAdded: un plist binario con una sola fecha
+ * (segundos desde 2001-01-01 como double). No está en el .DS_Store. */
+
+#define MACOS_DATE_ADDED_ATTR "xattr::com.apple.metadata:kMDItemDateAdded"
+#define FYNDER_DATE_ADDED_ATTR "xattr::fynder.date-added"
+#define MACOS_EPOCH_OFFSET 978307200
+
+/* GIO escapa los bytes no imprimibles de los atributos extendidos como \xNN */
+static guchar *
+unescape_xattr (const char *value, gsize *length)
+{
+	GByteArray *bytes = g_byte_array_new ();
+	const char *p;
+
+	for (p = value; *p != '\0'; p++) {
+		if (p[0] == '\\' && p[1] == 'x' && g_ascii_isxdigit (p[2]) && g_ascii_isxdigit (p[3])) {
+			guchar byte = (g_ascii_xdigit_value (p[2]) << 4) | g_ascii_xdigit_value (p[3]);
+
+			g_byte_array_append (bytes, &byte, 1);
+			p += 3;
+		} else if (p[0] == '\\' && p[1] == '\\') {
+			guchar byte = '\\';
+
+			g_byte_array_append (bytes, &byte, 1);
+			p += 1;
+		} else {
+			g_byte_array_append (bytes, (const guchar *) p, 1);
+		}
+	}
+
+	*length = bytes->len;
+	return g_byte_array_free (bytes, FALSE);
+}
+
+static time_t
+parse_macos_date_added (const char *escaped)
+{
+	gsize length;
+	guchar *data = unescape_xattr (escaped, &length);
+	time_t result = 0;
+
+	/* «bplist00» + objeto fecha (0x33) + double big endian */
+	if (length >= 17 && memcmp (data, "bplist00", 8) == 0 && data[8] == 0x33) {
+		guint64 bits = 0;
+		double seconds;
+		int i;
+
+		for (i = 0; i < 8; i++)
+			bits = (bits << 8) | data[9 + i];
+		memcpy (&seconds, &bits, sizeof seconds);
+		if (seconds > 0 && seconds < 4e9)
+			result = (time_t) seconds + MACOS_EPOCH_OFFSET;
+	}
+
+	g_free (data);
+	return result;
+}
+
+/* GIO entrega los xattr como cadena (o cadena de bytes, según la versión) */
+static const char *
+xattr_value (GFileInfo *info, const char *attribute)
+{
+	if (g_file_info_get_attribute_type (info, attribute) == G_FILE_ATTRIBUTE_TYPE_BYTE_STRING)
+		return g_file_info_get_attribute_byte_string (info, attribute);
+
+	return g_file_info_get_attribute_string (info, attribute);
+}
+
+static time_t
+file_info_get_date_added (GFileInfo *info)
+{
+	const char *value;
+
+	if (g_file_info_has_attribute (info, MACOS_DATE_ADDED_ATTR)) {
+		value = xattr_value (info, MACOS_DATE_ADDED_ATTR);
+		if (value != NULL) {
+			time_t t = parse_macos_date_added (value);
+
+			if (t != 0)
+				return t;
+		}
+	}
+
+	if (g_file_info_has_attribute (info, FYNDER_DATE_ADDED_ATTR)) {
+		value = xattr_value (info, FYNDER_DATE_ADDED_ATTR);
+		if (value != NULL) {
+			gint64 t = g_ascii_strtoll (value, NULL, 10);
+
+			if (t > 0)
+				return (time_t) t;
+		}
+	}
+
+	return 0;
+}
+
 static gboolean
 update_info_internal (NemoFile *file,
 		      GFileInfo *info,
@@ -2596,6 +2697,19 @@ update_info_internal (NemoFile *file,
 	file->details->ctime = ctime;
 	file->details->mtime = mtime;
     file->details->btime = btime;
+
+    /* Date Added: la que guardó macOS (kMDItemDateAdded), si el archivo la trae;
+     * si no, la que ponga Fynder; y si tampoco, la de creación o la de modificación. */
+    {
+        time_t added = file_info_get_date_added (info);
+
+        if (added == 0)
+            added = btime != 0 ? btime : mtime;
+        if (file->details->added_time != added) {
+            changed = TRUE;
+        }
+        file->details->added_time = added;
+    }
 
 	if (file->details->thumbnail != NULL &&
 	    file->details->thumbnail_mtime != 0 &&
@@ -2945,6 +3059,9 @@ get_time (NemoFile *file,
 		break;
     case NEMO_DATE_TYPE_CREATED:
         time = file->details->btime;
+        break;
+    case NEMO_DATE_TYPE_ADDED:
+        time = file->details->added_time;
         break;
 	case NEMO_DATE_TYPE_TRASHED:
 		time = file->details->trash_time;
@@ -3485,6 +3602,12 @@ nemo_file_compare_for_sort (NemoFile *file_1,
                 result = compare_by_full_path (file_1, file_2);
             }
             break;
+		case NEMO_FILE_SORT_BY_ADDED_TIME:
+			result = compare_by_time (file_1, file_2, NEMO_DATE_TYPE_ADDED);
+			if (result == 0) {
+				result = compare_by_full_path (file_1, file_2);
+			}
+			break;
 		case NEMO_FILE_SORT_BY_TRASHED_TIME:
 			result = compare_by_time (file_1, file_2, NEMO_DATE_TYPE_TRASHED);
 			if (result == 0) {
@@ -3588,6 +3711,14 @@ nemo_file_compare_for_sort_by_attribute_q   (NemoFile                   *file_1,
                attribute == attribute_date_created_full_q) {
         return nemo_file_compare_for_sort (file_1, file_2,
                                NEMO_FILE_SORT_BY_BTIME,
+                               directories_first,
+                               favorites_first,
+                               reversed,
+                               search_dir);
+    } else if (attribute == attribute_date_added_q ||
+               attribute == attribute_date_added_full_q) {
+        return nemo_file_compare_for_sort (file_1, file_2,
+                               NEMO_FILE_SORT_BY_ADDED_TIME,
                                directories_first,
                                favorites_first,
                                reversed,
@@ -5153,6 +5284,7 @@ nemo_file_get_date (NemoFile *file,
 			      || date_type == NEMO_DATE_TYPE_ACCESSED
 			      || date_type == NEMO_DATE_TYPE_MODIFIED
                   || date_type == NEMO_DATE_TYPE_CREATED
+                  || date_type == NEMO_DATE_TYPE_ADDED
 			      || date_type == NEMO_DATE_TYPE_TRASHED
 			      || date_type == NEMO_DATE_TYPE_PERMISSIONS_CHANGED, FALSE);
 
@@ -5217,6 +5349,8 @@ nemo_date_type_to_string (NemoDateType type)
             return "NEMO_DATE_TYPE_TRASHED";
         case NEMO_DATE_TYPE_CREATED:
             return "NEMO_DATE_TYPE_CREATED";
+        case NEMO_DATE_TYPE_ADDED:
+            return "NEMO_DATE_TYPE_ADDED";
     }
 
     return "(unknown)";
@@ -6956,6 +7090,16 @@ nemo_file_get_string_attribute_q (NemoFile *file, GQuark attribute_q)
                              NEMO_DATE_TYPE_CREATED,
                              NEMO_DATE_FORMAT_REGULAR_WITH_TIME);
     }
+    if (attribute_q == attribute_date_added_q) {
+        return nemo_file_get_date_as_string (file,
+                             NEMO_DATE_TYPE_ADDED,
+                             NEMO_DATE_FORMAT_REGULAR);
+    }
+    if (attribute_q == attribute_date_added_full_q) {
+        return nemo_file_get_date_as_string (file,
+                             NEMO_DATE_TYPE_ADDED,
+                             NEMO_DATE_FORMAT_FULL);
+    }
 	if (attribute_q == attribute_trashed_on_q) {
 		return nemo_file_get_date_as_string (file,
 							 NEMO_DATE_TYPE_TRASHED,
@@ -7136,7 +7280,9 @@ nemo_file_is_date_sort_attribute_q (GQuark attribute_q)
         attribute_q == attribute_creation_date_q ||
         attribute_q == attribute_date_created_q ||
         attribute_q == attribute_date_created_full_q ||
-        attribute_q == attribute_date_created_with_time_q) {
+        attribute_q == attribute_date_created_with_time_q ||
+        attribute_q == attribute_date_added_q ||
+        attribute_q == attribute_date_added_full_q) {
 		return TRUE;
 	}
 
@@ -9110,6 +9256,8 @@ nemo_file_class_init (NemoFileClass *class)
     attribute_date_created_q = g_quark_from_static_string ("date_created");
     attribute_date_created_full_q = g_quark_from_static_string ("date_created_full");
     attribute_date_created_with_time_q = g_quark_from_static_string ("date_created_with_time");
+    attribute_date_added_q = g_quark_from_static_string ("date_added");
+    attribute_date_added_full_q = g_quark_from_static_string ("date_added_full");
 	attribute_mime_type_q = g_quark_from_static_string ("mime_type");
 	attribute_size_detail_q = g_quark_from_static_string ("size_detail");
 	attribute_deep_size_q = g_quark_from_static_string ("deep_size");
