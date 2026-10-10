@@ -4655,6 +4655,9 @@ heading_cell_renderer_func (GtkTreeViewColumn *column,
 			      "visible", TRUE,
 			      "foreground", finder_sections ? "#c3c4bf" : NULL,
 			      "foreground-set", finder_sections,
+			      /* Finder: encabezado de ~10 px, fino y gris; Nemo: negrita normal */
+			      "scale", finder_sections ? 0.78 : 1.0,
+			      "weight", finder_sections ? PANGO_WEIGHT_NORMAL : PANGO_WEIGHT_BOLD,
 			      "xpad", finder_sections ? 4 : 0,
 			      "ypad", finder_sections ? 6 : 0,
 			      NULL);
