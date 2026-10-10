@@ -18,7 +18,6 @@
 		<placeholder name="Open Placeholder"/>
 		<separator/>
 		<placeholder name="Location Placeholder"/>
-		<menuitem name="Connect to Server" action="Connect to Server"/>
 		<separator/>
 		<placeholder name="File Items Placeholder"/>
 		<separator/>
@@ -74,7 +73,6 @@
 			<menuitem name="Show Hide Path Bar" action="Show Hide Path Bar"/>
             <separator/>
 			<menuitem name="Show Hide Extra Pane" action="Show Hide Extra Pane"/>
-            <menuitem name="Edit Location" action="Edit Location"/>
 		</placeholder>
 		<separator/>
 		<placeholder name="View Preferences Placeholder"/>
@@ -102,12 +100,18 @@
 			<menuitem name="SplitViewSameLocationMenu" action="SplitViewSameLocation"/>
 	                </placeholder>
 	                <separator/>
+			<menuitem name="Go to Recents" action="Go to Recents"/>
+			<menuitem name="Go to Documents" action="Go to Documents"/>
+			<menuitem name="Go to Desktop" action="Go to Desktop"/>
+			<menuitem name="Go to Downloads" action="Go to Downloads"/>
 			<menuitem name="Home" action="Home"/>
 			<menuitem name="Computer" action="Go to Computer"/>
-			<menuitem name="Go to Templates" action="Go to Templates"/>
+			<menuitem name="Go to Network" action="Go to Network"/>
 			<menuitem name="Go to Trash" action="Go to Trash"/>
-		        <menuitem name="Go to Network" action="Go to Network"/>
-			<menuitem name="Search" action="Search"/>
+			<menuitem name="Go to Templates" action="Go to Templates"/>
+			<separator/>
+			<menuitem name="Edit Location" action="Edit Location"/>
+			<menuitem name="Connect to Server" action="Connect to Server"/>
 		</menu>
 		<menu action="Bookmarks">
 			<menuitem name="Add Bookmark" action="Add Bookmark"/>

@@ -154,6 +154,61 @@ action_home_callback (GtkAction *action,
     }
 }
 
+/* Ir a Recents / Documents / Desktop / Downloads, como el menú Go del Finder.
+ * Si user-dirs apunta la carpeta a $HOME se usa ~/<nombre estándar>. */
+static void
+go_to_user_dir (NemoWindow *window,
+		GUserDirectory directory,
+		const gchar *fallback)
+{
+	const gchar *path = g_get_user_special_dir (directory);
+	gchar *fallback_path = NULL;
+	GFile *location;
+
+	if (path == NULL || g_strcmp0 (path, g_get_home_dir ()) == 0) {
+		fallback_path = g_build_filename (g_get_home_dir (), fallback, NULL);
+		path = fallback_path;
+	}
+
+	location = g_file_new_for_path (path);
+	nemo_window_slot_open_location (nemo_window_get_active_slot (window), location,
+					nemo_event_get_window_open_flags ());
+	g_object_unref (location);
+	g_free (fallback_path);
+}
+
+static void
+action_go_to_recents_callback (GtkAction *action,
+			       gpointer user_data)
+{
+	GFile *recent = g_file_new_for_uri ("recent:///");
+
+	nemo_window_slot_open_location (nemo_window_get_active_slot (NEMO_WINDOW (user_data)), recent,
+					nemo_event_get_window_open_flags ());
+	g_object_unref (recent);
+}
+
+static void
+action_go_to_documents_callback (GtkAction *action,
+				 gpointer user_data)
+{
+	go_to_user_dir (NEMO_WINDOW (user_data), G_USER_DIRECTORY_DOCUMENTS, "Documents");
+}
+
+static void
+action_go_to_desktop_callback (GtkAction *action,
+			       gpointer user_data)
+{
+	go_to_user_dir (NEMO_WINDOW (user_data), G_USER_DIRECTORY_DESKTOP, "Desktop");
+}
+
+static void
+action_go_to_downloads_callback (GtkAction *action,
+				 gpointer user_data)
+{
+	go_to_user_dir (NEMO_WINDOW (user_data), G_USER_DIRECTORY_DOWNLOAD, "Downloads");
+}
+
 static void
 action_go_to_computer_callback (GtkAction *action,
 				gpointer user_data)
@@ -1400,7 +1455,7 @@ static const GtkActionEntry main_entries[] = {
                                  "<control>Z", N_("Undo the last text change"),
                                  G_CALLBACK (action_undo_callback) },
 #endif
-  /* name, stock id, label */  { "Up", "xsi-go-up-symbolic", N_("Open _Parent"),
+  /* name, stock id, label */  { "Up", "xsi-go-up-symbolic", N_("_Enclosing Folder"),
                                  "<alt>Up", N_("Open the parent folder"),
                                  G_CALLBACK (action_up_callback) },
   /* name, stock id, label */  { "UpAccel", NULL, "UpAccel",
@@ -1474,6 +1529,22 @@ static const GtkActionEntry main_entries[] = {
   /* label, accelerator */       N_("_Home"), "<alt>Home",
   /* tooltip */                  N_("Open your personal folder"),
                                  G_CALLBACK (action_home_callback) },
+  /* name, stock id */         { "Go to Recents", NULL,
+  /* label, accelerator */       N_("_Recents"), NULL,
+  /* tooltip */                  N_("Open the files you used recently"),
+                                 G_CALLBACK (action_go_to_recents_callback) },
+  /* name, stock id */         { "Go to Documents", NULL,
+  /* label, accelerator */       N_("_Documents"), NULL,
+  /* tooltip */                  N_("Open your Documents folder"),
+                                 G_CALLBACK (action_go_to_documents_callback) },
+  /* name, stock id */         { "Go to Desktop", NULL,
+  /* label, accelerator */       N_("D_esktop"), NULL,
+  /* tooltip */                  N_("Open your Desktop folder"),
+                                 G_CALLBACK (action_go_to_desktop_callback) },
+  /* name, stock id */         { "Go to Downloads", NULL,
+  /* label, accelerator */       N_("Down_loads"), NULL,
+  /* tooltip */                  N_("Open your Downloads folder"),
+                                 G_CALLBACK (action_go_to_downloads_callback) },
   /* name, stock id */         { "Go to Computer", NEMO_ICON_SYMBOLIC_COMPUTER,
   /* label, accelerator */       N_("_Computer"), NULL,
   /* tooltip */                  N_("Browse all local and remote disks and folders accessible from this computer"),
@@ -1508,8 +1579,8 @@ static const GtkActionEntry main_entries[] = {
   /* name, stock id, label */  { NEMO_ACTION_FORWARD, "xsi-go-next-symbolic", N_("_Forward"),
 				 "<alt>Right", N_("Go to the next visited location"),
 				 G_CALLBACK (action_forward_callback) },
-  /* name, stock id, label */  { NEMO_ACTION_EDIT_LOCATION, NULL, N_("Toggle _Location Entry"),
-                                 "<control>L", N_("Switch between location entry and breadcrumbs"),
+  /* name, stock id, label */  { NEMO_ACTION_EDIT_LOCATION, NULL, N_("Go to _Folder..."),
+                                 "<control><shift>G", N_("Switch between location entry and breadcrumbs"),
                                  G_CALLBACK (action_menu_edit_location_callback) },
   /* name, stock id, label */  { "SplitViewNextPane", NULL, N_("S_witch to Other Pane"),
 				 "F6", N_("Move focus to the other pane in a split view window"),
