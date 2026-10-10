@@ -70,6 +70,7 @@
 #define EXPANDER_PAD_COLUMN_WIDTH 4
 #define EJECT_COLUMN_MIN_WIDTH 22
 #define EJECT_COLUMN_MAX_WIDTH 60
+#define FINDER_EJECT_COLUMN_MAX_WIDTH 26
 #define DRAG_EXPAND_CATEGORY_DELAY 500
 #define EJECT_PAD_COLUMN_WIDTH 14
 
@@ -1893,7 +1894,11 @@ update_finder_sidebar_style (NemoPlacesSidebar *sidebar)
         gtk_style_context_add_class (tree_context, "nemo-finder-sidebar-tree");
         gtk_tree_view_set_show_expanders (sidebar->tree_view, FALSE);
         gtk_tree_view_column_set_fixed_width (gtk_tree_view_get_column (sidebar->tree_view, 1), 1);
+        /* La columna del botón de expulsar llegaba a 35-60 px y le quitaba espacio
+         * al nombre («Macintosh …»): con un icono de 16 px y su margen basta. */
+        gtk_tree_view_column_set_max_width (sidebar->eject_column, FINDER_EJECT_COLUMN_MAX_WIDTH);
     } else {
+        gtk_tree_view_column_set_max_width (sidebar->eject_column, EJECT_COLUMN_MAX_WIDTH);
         gtk_style_context_remove_class (sidebar_context, "nemo-finder-sidebar");
         gtk_style_context_remove_class (tree_context, "nemo-finder-sidebar-tree");
         gtk_tree_view_set_show_expanders (sidebar->tree_view, TRUE);
