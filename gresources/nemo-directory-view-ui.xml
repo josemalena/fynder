@@ -155,7 +155,6 @@
 		<menuitem name="Open" action="Open"/>
 		<menuitem name="OpenInNewTab" action="OpenInNewTab"/>
 		<menuitem name="OpenAlternate" action="OpenAlternate"/>
-		<menuitem name="Quick Look" action="Quick Look"/>
 		<separator name="applications separator"/>
 		<placeholder name="Applications Placeholder"/>
 		<menu action="Open With">
@@ -172,12 +171,24 @@
         <separator name="Before Actions"/>
         <placeholder name="ActionsPlaceholder"/>
 	</placeholder>
+	<separator name="Dangerous separator"/>
+	<placeholder name="Dangerous File Actions">
+		<menuitem name="Trash" action="Trash"/>
+		<menuitem name="Delete" action="Delete"/>
+	</placeholder>
+	<separator name="Properties Separator"/>
+	<placeholder name="Info Actions">
+		<menuitem name="Properties" action="Properties"/>
+		<menuitem name="Rename" action="Rename"/>
+		<menuitem name="Duplicate" action="Duplicate"/>
+		<menuitem name="Create Link" action="Create Link"/>
+		<menuitem name="Quick Look" action="Quick Look"/>
+	</placeholder>
 	<separator name="Clipboard separator"/>
 	<placeholder name="File Clipboard Actions">
 		<menuitem name="Cut" action="Cut"/>
 		<menuitem name="Copy" action="Copy"/>
 		<menuitem name="Paste Files Into" action="Paste Files Into"/>
-        <menuitem name="Duplicate" action="Duplicate"/>
 	</placeholder>
 	<separator name="File actions separator"/>
 	<placeholder name="File Actions">
@@ -185,8 +196,6 @@
         <menuitem name="Unfavorite File" action="Unfavorite File"/>
         <menuitem name="Pin File" action="Pin File"/>
         <menuitem name="Unpin File" action="Unpin File"/>
-		<menuitem name="Create Link" action="Create Link"/>
-		<menuitem name="Rename" action="Rename"/>
 		<menu name="CopyToMenu" action="CopyToMenu">
 			<menuitem name="Copy to next pane" action="Copy to next pane"/>
 			<menuitem name="Copy to Home" action="Copy to Home"/>
@@ -213,11 +222,6 @@
 	<menuitem name="OpenAsRoot" action="OpenAsRoot"/>
     <menuitem name="FollowSymbolicLink" action="FollowSymbolicLink"/>
     <menuitem name="OpenContainingFolder" action="OpenContainingFolder"/>
-	<separator name="Dangerous separator"/>
-	<placeholder name="Dangerous File Actions">
-		<menuitem name="Trash" action="Trash"/>
-		<menuitem name="Delete" action="Delete"/>
-	</placeholder>
 	<separator name="Appearance separator"/>
 	<placeholder name="Icon Appearance Items">
 	</placeholder>
@@ -233,8 +237,6 @@
 		 <menuitem name="Poll" action="Poll"/>
         </placeholder>
         <menuitem name="Connect To Server Link" action="Connect To Server Link"/>
-        <separator name="Properties Separator"/>
-        <menuitem name="Properties" action="Properties"/>
 </popup>
 <popup name="location">
     <menuitem name="Restore From Trash" action="LocationRestoreFromTrash"/>
