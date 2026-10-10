@@ -125,7 +125,7 @@ NemoDesktopWindow GtkPaned {
 }
 
 .nemo-finder-toolbar entry {
-    min-height: 34px;
+    min-height: 30px;           /* + 6 px del borde de 3 px del tema = 36 px */
     padding-top: 0;
     padding-bottom: 0;
     margin: 0 2px;
