@@ -41,17 +41,22 @@
 			<menuitem name="Self Start Volume" action="Self Start Volume"/>
 			<menuitem name="Self Stop Volume" action="Self Stop Volume"/>
 			<menuitem name="Self Poll" action="Self Poll"/>
-			<menuitem name="Quick Look" action="Quick Look"/>
 			<separator name="Properties Separator"/>
 			<menuitem name="Properties" action="Properties"/>
+			<menuitem name="Rename" action="Rename"/>
+			<menuitem name="Duplicate" action="Duplicate"/>
+			<menuitem name="Create Link" action="Create Link"/>
+			<menuitem name="Quick Look" action="Quick Look"/>
+			<separator name="Trash Separator"/>
+			<menuitem name="Trash" action="Trash"/>
+			<menuitem name="Delete" action="Delete"/>
+			<menuitem name="Restore From Trash" action="Restore From Trash"/>
 		</placeholder>
 		<placeholder name="Global File Items Placeholder">
 			<menuitem name="Empty Trash" action="Empty Trash"/>
 		</placeholder>
 	</menu>
 	<menu action="Edit">
-        <menuitem name="Restore From Trash" action="Restore From Trash"/>
-        <separator/>
 		<placeholder name="Clipboard Actions">
 			<menuitem name="Cut" action="Cut"/>
 			<menuitem name="Copy" action="Copy"/>
@@ -71,9 +76,6 @@
             <menuitem name="Unfavorite" action="Unfavorite File"/>
             <menuitem name="Pin File" action="Pin File"/>
             <menuitem name="Unpin File" action="Unpin File"/>
-			<menuitem name="Duplicate" action="Duplicate"/>
-			<menuitem name="Create Link" action="Create Link"/>
-			<menuitem name="Rename" action="Rename"/>
 			<menu action="CopyToMenu">
 				<menuitem name="Copy to next pane" action="Copy to next pane"/>
 				<menuitem name="Copy to Home" action="Copy to Home"/>
@@ -94,10 +96,6 @@
                 <separator/>
                 <menuitem name="Browse for move to" action="BrowseMoveTo"/>
 			</menu>
-		</placeholder>
-		<placeholder name="Dangerous File Items Placeholder">
-			<menuitem name="Trash" action="Trash"/>
-			<menuitem name="Delete" action="Delete"/>
 		</placeholder>
 		<placeholder name="Extension Actions"/>
 	</menu>

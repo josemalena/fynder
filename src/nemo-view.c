@@ -8330,7 +8330,7 @@ static const GtkActionEntry directory_view_entries[] = {
   /* name, stock id, label */  { "Open With", NULL, N_("Open Wit_h"),
 				 NULL, N_("Choose a program with which to open the selected item") },
   /* name, stock id */         { "Properties", "xsi-document-properties-symbolic",
-  /* label, accelerator */       N_("_Properties"), "<alt>Return",
+  /* label, accelerator */       N_("Get _Info"), "<alt>Return",
   /* tooltip */                  N_("View or modify the properties of each selected item"),
 				 G_CALLBACK (action_properties_callback) },
   /* name, stock id */         { "Quick Look", NULL,
@@ -8433,7 +8433,7 @@ static const GtkActionEntry directory_view_entries[] = {
   /* tooltip */                  N_("Duplicate each selected item"),
 				 G_CALLBACK (action_duplicate_callback) },
   /* name, stock id */         { "Create Link", NULL,
-  /* label, accelerator */       N_("Ma_ke Link"), "<control>M",
+  /* label, accelerator */       N_("Make _Alias"), NULL,
   /* tooltip */                  N_("Create a symbolic link for each selected item"),
 				 G_CALLBACK (action_create_link_callback) },
   /* name, stock id */         { "Rename", NULL,
@@ -8587,7 +8587,7 @@ static const GtkActionEntry directory_view_entries[] = {
 				 G_CALLBACK (action_location_detect_media_callback) },
 
   /* name, stock id */         { "LocationProperties", "xsi-document-properties-symbolic",
-  /* label, accelerator */       N_("_Properties"), NULL,
+  /* label, accelerator */       N_("Get _Info"), NULL,
   /* tooltip */                  N_("View or modify the properties of this folder"),
 				 G_CALLBACK (action_location_properties_callback) },
 
@@ -9994,8 +9994,8 @@ real_update_menus (NemoView *view)
 	gtk_action_set_sensitive (action, can_link_files);
     gtk_action_set_visible (action, !selection_contains_recent && !selection_contains_favorites);
 	g_object_set (action, "label",
-		      ngettext ("Ma_ke Link",
-			      	"Ma_ke Links",
+		      ngettext ("Make _Alias",
+			      	"Make _Aliases",
 				selection_count),
 		      NULL);
 

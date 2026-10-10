@@ -1388,7 +1388,7 @@ static const GtkActionEntry main_entries[] = {
   /* name, stock id, label */  { "View", NULL, N_("_View") },
   /* name, stock id, label */  { "Help", NULL, N_("_Help") },
   /* name, stock id */         { "Close", "xsi-window-close-symbolic",
-  /* label, accelerator */       N_("_Close"), "<control>W",
+  /* label, accelerator */       N_("_Close Window"), "<control>W",
   /* tooltip */                  N_("Close this folder"),
                                  G_CALLBACK (action_close_window_slot_callback) },
                                { "Preferences", "xsi-toolbox-symbolic",
