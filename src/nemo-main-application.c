@@ -1221,8 +1221,15 @@ nemo_main_application_class_init (NemoMainApplicationClass *class)
 NemoApplication *
 nemo_main_application_get_singleton (void)
 {
+    /* Para pruebas: NEMO_MAC_APP_ID arranca una instancia aparte, sin tocar la
+     * que ya esté abierta (la aplicación es de instancia única por su id). */
+    const gchar *app_id = g_getenv ("NEMO_MAC_APP_ID");
+
+    if (app_id == NULL || !g_application_id_is_valid (app_id))
+        app_id = "io.github.josemalena.NemoMac";
+
     return nemo_application_initialize_singleton (NEMO_TYPE_MAIN_APPLICATION,
-                                                  "application-id", "io.github.josemalena.NemoMac",
+                                                  "application-id", app_id,
                                                   "flags", G_APPLICATION_HANDLES_OPEN,
                                                   "register-session", TRUE,
                                                   NULL);
