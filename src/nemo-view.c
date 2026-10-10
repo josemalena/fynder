@@ -9962,7 +9962,11 @@ real_update_menus (NemoView *view)
 
 	action = gtk_action_group_get_action (view->details->dir_action_group,
 					      NEMO_ACTION_DELETE);
-	gtk_action_set_visible (action, show_separate_delete_command && !selection_contains_favorites);
+	/* el Finder no tiene borrado permanente en el menú: solo Move to Trash
+	 * (en Recent sigue siendo «Remove from Recent») */
+	gtk_action_set_visible (action, show_separate_delete_command && !selection_contains_favorites &&
+				(selection_contains_recent ||
+				 !g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT)));
 
     if (selection_contains_recent) {
         label = _("Remo_ve from Recent");
