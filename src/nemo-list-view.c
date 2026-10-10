@@ -2239,11 +2239,21 @@ apply_columns_settings (NemoListView *list_view,
 /* Archivos ocultos atenuados (como en el Finder): se pinta la celda con el
  * estado «insensitive» del tema. */
 static void
-set_hidden_dim (GtkCellRenderer *renderer,
-                GtkTreeModel    *model,
-                GtkTreeIter     *iter)
+set_hidden_dim (GtkTreeViewColumn *column,
+                GtkCellRenderer   *renderer,
+                GtkTreeModel      *model,
+                GtkTreeIter       *iter)
 {
 	gboolean dim = FALSE;
+	GtkWidget *tree_view = gtk_tree_view_column_get_tree_view (column);
+
+	/* Una fila oculta seleccionada se lee con el color normal de la selección:
+	 * el gris deshabilitado sobre el azul casi no se distingue. */
+	if (GTK_IS_TREE_VIEW (tree_view) &&
+	    gtk_tree_selection_iter_is_selected (gtk_tree_view_get_selection (GTK_TREE_VIEW (tree_view)), iter)) {
+		g_object_set (renderer, "sensitive", TRUE, NULL);
+		return;
+	}
 
 	if (g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_FINDER_DIM_HIDDEN_FILES)) {
 		NemoFile *file = NULL;
@@ -2265,7 +2275,7 @@ hidden_dim_cell_data_func (GtkTreeViewColumn *column,
                            GtkTreeIter       *iter,
                            gpointer           user_data)
 {
-	set_hidden_dim (renderer, model, iter);
+	set_hidden_dim (column, renderer, model, iter);
 }
 
 static void
@@ -2285,7 +2295,7 @@ filename_cell_data_func (GtkTreeViewColumn *column,
                 NEMO_LIST_MODEL_TEXT_WEIGHT_COLUMN, &weight,
 			    -1);
 
-	set_hidden_dim (renderer, model, iter);
+	set_hidden_dim (column, renderer, model, iter);
 
 	if (click_policy == NEMO_CLICK_POLICY_SINGLE) {
 		path = gtk_tree_model_get_path (model, iter);
