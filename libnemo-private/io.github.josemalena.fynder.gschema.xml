@@ -387,6 +387,11 @@
       <summary>Sidebar items hidden by the user</summary>
       <description>Identifiers of the built-in sidebar items that are not shown: recent, desktop, documents, downloads, movies, music, pictures, home, computer, disks, network, trash.</description>
     </key>
+    <key name="import-ds-store" type="b">
+      <default>true</default>
+      <summary>Use macOS folder settings (.DS_Store)</summary>
+      <description>The first time a folder is opened, read the .DS_Store that macOS keeps in it (view type, columns, sort order, icon size and icon positions) and use those settings. The .DS_Store is only read, never written.</description>
+    </key>
     <key name="finder-open-in-tabs" type="b">
       <default>false</default>
       <summary>Open folders in tabs instead of new windows</summary>

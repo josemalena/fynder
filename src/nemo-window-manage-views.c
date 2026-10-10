@@ -34,6 +34,7 @@
 #include "nemo-location-bar.h"
 #include "nemo-pathbar.h"
 #include "nemo-window-private.h"
+#include "nemo-ds-store-import.h"
 #include "nemo-window-slot.h"
 #include "nemo-trash-bar.h"
 #include "nemo-view-factory.h"
@@ -919,6 +920,9 @@ got_file_info_for_view_selection_callback (NemoFile *file,
 
         if (error == NULL ||
 	    (error->domain == G_IO_ERROR && error->code == G_IO_ERROR_NOT_SUPPORTED)) {
+		/* carpetas que vienen de macOS: se toman los ajustes de su .DS_Store la primera vez */
+		nemo_ds_store_import (file);
+
 		/* We got the information we need, now pick what view to use: */
 
 		mimetype = nemo_file_get_mime_type (file);
