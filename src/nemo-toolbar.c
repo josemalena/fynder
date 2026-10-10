@@ -169,6 +169,7 @@ toolbar_create_menu_button (const gchar *icon_name,
     gtk_widget_set_tooltip_text (button, tooltip);
     gtk_widget_set_can_focus (button, FALSE);
     gtk_style_context_add_class (gtk_widget_get_style_context (button), GTK_STYLE_CLASS_FLAT);
+    gtk_style_context_add_class (gtk_widget_get_style_context (button), "nemo-finder-menubutton");
     gtk_widget_show_all (button);
 
     return button;
