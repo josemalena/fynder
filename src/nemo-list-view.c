@@ -2236,6 +2236,57 @@ apply_columns_settings (NemoListView *list_view,
     g_list_free (view_columns);
 }
 
+/* Cebra al estilo Finder. El tema no pinta el rules-hint, así que se superpone
+ * un velo muy tenue sobre las filas alternas (las impares), también en el hueco
+ * bajo la última fila. Todas las filas miden lo mismo, de modo que la paridad
+ * sale de su posición vertical. */
+static gboolean
+list_view_draw_zebra_cb (GtkWidget *widget,
+                         cairo_t   *cr,
+                         gpointer   user_data)
+{
+	GtkTreeView *tv = GTK_TREE_VIEW (widget);
+	GdkWindow *bin_window = gtk_tree_view_get_bin_window (tv);
+	GtkTreePath *first = NULL;
+	GdkRectangle rect;
+	gint row_h, scroll_y, width, height, index;
+
+	if (!g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT))
+		return FALSE;
+
+	if (!gtk_cairo_should_draw_window (cr, bin_window))
+		return FALSE;
+
+	if (!gtk_tree_view_get_visible_range (tv, &first, NULL) || first == NULL)
+		return FALSE;
+
+	gtk_tree_view_get_background_area (tv, first, NULL, &rect);
+	gtk_tree_path_free (first);
+
+	row_h = rect.height;
+	if (row_h <= 0)
+		return FALSE;
+
+	/* y del árbol de la primera fila visible (rect.y está en la ventana interna) */
+	gtk_tree_view_convert_bin_window_to_tree_coords (tv, 0, rect.y, NULL, &scroll_y);
+	index = scroll_y / row_h;
+
+	width = gdk_window_get_width (bin_window);
+	height = gdk_window_get_height (bin_window);
+
+	cairo_save (cr);
+	gtk_cairo_transform_to_window (cr, widget, bin_window);
+	cairo_set_source_rgba (cr, 1.0, 1.0, 1.0, 0.045);
+	for (gint y = rect.y; y < height; y += row_h, index++) {
+		if (index % 2 != 0)
+			cairo_rectangle (cr, 0, y, width, row_h);
+	}
+	cairo_fill (cr);
+	cairo_restore (cr);
+
+	return FALSE;
+}
+
 /* Archivos ocultos atenuados (como en el Finder): se pinta la celda con el
  * estado «insensitive» del tema. */
 static void
@@ -2730,6 +2781,8 @@ create_and_set_up_tree_view (NemoListView *view)
 
 	gtk_tree_selection_set_mode (gtk_tree_view_get_selection (view->details->tree_view), GTK_SELECTION_MULTIPLE);
 	gtk_tree_view_set_rules_hint (view->details->tree_view, TRUE);
+	g_signal_connect_after (view->details->tree_view, "draw",
+				G_CALLBACK (list_view_draw_zebra_cb), NULL);
 
 	nemo_columns = nemo_get_all_columns ();
 
