@@ -99,6 +99,9 @@ static const FinderShortcut shortcuts[] = {
 	{ GDK_KEY_period,       CMD | SHIFT, NEMO_ACTION_SHOW_HIDDEN_FILES, FALSE },
 	{ GDK_KEY_colon,        CMD | SHIFT, NEMO_ACTION_SHOW_HIDDEN_FILES, FALSE },
 
+	/* Show View Options */
+	{ GDK_KEY_j,            CMD,         "View Options", TRUE },
+
 	/* Preferencias */
 	{ GDK_KEY_comma,        CMD,         "Preferences", TRUE },
 };

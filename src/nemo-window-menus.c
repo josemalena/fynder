@@ -35,6 +35,7 @@
 #include "nemo-connect-server-dialog.h"
 #include "nemo-file-management-properties.h"
 #include "nemo-finder-preferences.h"
+#include "nemo-finder-view-options.h"
 #include "nemo-navigation-action.h"
 #include "nemo-notebook.h"
 #include "nemo-window-manage-views.h"
@@ -227,6 +228,13 @@ finder_layout_changed_for_menus (GtkActionGroup *action_group,
 				 GSettings *settings)
 {
 	update_bookmarks_menu_visibility (action_group);
+}
+
+static void
+action_view_options_callback (GtkAction *action,
+			      gpointer user_data)
+{
+	nemo_finder_view_options_show (NEMO_WINDOW (user_data));
 }
 
 static void
@@ -1595,6 +1603,10 @@ static const GtkActionEntry main_entries[] = {
   /* name, stock id, label */  { "Bookmarks", NULL, N_("_Bookmarks") },
   /* name, stock id, label */  { "Tabs", NULL, N_("_Tabs") },
   /* name, stock id, label */  { "Window", NULL, N_("_Window") },
+  /* name, stock id */         { "View Options", NULL,
+  /* label, accelerator */       N_("Show View _Options"), NULL,
+  /* tooltip */                  N_("Change the icon size and sorting of this view"),
+                                 G_CALLBACK (action_view_options_callback) },
   /* name, stock id */         { "Window Minimize", NULL,
   /* label, accelerator */       N_("_Minimize"), NULL,
   /* tooltip */                  N_("Minimize this window"),
