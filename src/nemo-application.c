@@ -28,6 +28,7 @@
 
 #include <config.h>
 
+#include "nemo-finder-shortcuts.h"
 #include "nemo-application.h"
 
 #include "nemo-desktop-window.h"
@@ -589,6 +590,9 @@ nemo_application_startup (GApplication *app)
 	 * is called for us.
 	 */
 	G_APPLICATION_CLASS (nemo_application_parent_class)->startup (app);
+
+	/* ⌘ + clic selecciona varios archivos, como en macOS */
+	nemo_finder_shortcuts_install_event_filter ();
 
 	/* create an undo manager */
 	self->undo_manager = nemo_undo_manager_new ();

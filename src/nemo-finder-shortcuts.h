@@ -16,4 +16,8 @@ gboolean nemo_finder_shortcuts_handle (NemoWindow *window,
 /* Hace que los menús muestren (y atiendan) los atajos Finder en vez de los de Nemo. */
 void nemo_finder_shortcuts_install (NemoWindow *window);
 
+/* Cmd + clic suma o quita de la selección, como en macOS: keyd entrega ⌘ como Super
+ * en los clics, y GTK solo reconoce Ctrl para extender la selección. */
+void nemo_finder_shortcuts_install_event_filter (void);
+
 #endif /* NEMO_FINDER_SHORTCUTS_H */

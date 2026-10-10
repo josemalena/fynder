@@ -308,6 +308,42 @@ actions_changed_cb (GtkUIManager *manager,
 	g_idle_add_full (G_PRIORITY_LOW, apply_menu_accels_idle, g_object_ref (window), g_object_unref);
 }
 
+static void
+finder_event_handler (GdkEvent *event,
+                      gpointer data)
+{
+	GdkModifierType *state = NULL;
+
+	switch (event->type) {
+	case GDK_BUTTON_PRESS:
+	case GDK_2BUTTON_PRESS:
+	case GDK_3BUTTON_PRESS:
+	case GDK_BUTTON_RELEASE:
+		state = &event->button.state;
+		break;
+	case GDK_MOTION_NOTIFY:
+		state = &event->motion.state;
+		break;
+	default:
+		break;
+	}
+
+	/* ⌘ + clic se trata como Ctrl + clic (alternar elemento en la selección) */
+	/* en los eventos del ratón X11 entrega Super como Mod4 y GDK no le añade el bit virtual */
+	if (state != NULL && (*state & (GDK_SUPER_MASK | GDK_MOD4_MASK)) != 0 &&
+	    g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_SHORTCUTS_FINDER_STYLE)) {
+		*state = (*state & ~(GDK_SUPER_MASK | GDK_MOD4_MASK)) | GDK_CONTROL_MASK;
+	}
+
+	gtk_main_do_event (event);
+}
+
+void
+nemo_finder_shortcuts_install_event_filter (void)
+{
+	gdk_event_handler_set (finder_event_handler, NULL, NULL);
+}
+
 void
 nemo_finder_shortcuts_install (NemoWindow *window)
 {
