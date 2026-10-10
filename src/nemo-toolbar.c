@@ -662,7 +662,7 @@ toolbar_apply_finder_icons (NemoToolbar *self,
     toolbar_set_finder_icon (self->priv->search_button, "edit-find-symbolic", finder_layout);
     toolbar_set_finder_icon (self->priv->icon_view_button, "view-grid-symbolic", finder_layout);
     toolbar_set_finder_icon (self->priv->list_view_button, "view-list-symbolic", finder_layout);
-    toolbar_set_finder_icon (self->priv->compact_view_button, "view-compact-symbolic", finder_layout);
+    toolbar_set_finder_icon (self->priv->compact_view_button, "view-column-symbolic", finder_layout);
     toolbar_set_finder_icon (self->priv->show_extra_pane_button, "view-dual-symbolic", finder_layout);
 }
 
