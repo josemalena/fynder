@@ -73,7 +73,9 @@
 
 #define EJECT_COLUMN_MIN_WIDTH 22
 #define EJECT_COLUMN_MAX_WIDTH 60
-#define FINDER_EJECT_COLUMN_MAX_WIDTH 26
+#define FINDER_EJECT_COLUMN_MAX_WIDTH 36
+/* margen derecho del botón: el fondo de selección termina 8 px antes del borde */
+#define FINDER_EJECT_TRAILING_PAD 14
 #define DRAG_EXPAND_CATEGORY_DELAY 500
 #define EJECT_PAD_COLUMN_WIDTH 14
 
@@ -91,6 +93,8 @@ typedef struct {
 	GtkTreeView        *tree_view;
     GtkTreeViewColumn  *eject_column;
     GtkCellRenderer    *eject_icon_cell_renderer;
+    GtkCellRenderer    *eject_pad_cell_renderer;
+    gint                eject_pad_width;
     GtkCellRenderer    *editable_renderer;
 	char 	           *uri;
 	GtkTreeStore       *store;
@@ -2034,8 +2038,14 @@ update_finder_sidebar_style (NemoPlacesSidebar *sidebar)
         /* La columna del botón de expulsar llegaba a 35-60 px y le quitaba espacio
          * al nombre («Macintosh …»): con un icono de 16 px y su margen basta. */
         gtk_tree_view_column_set_max_width (sidebar->eject_column, FINDER_EJECT_COLUMN_MAX_WIDTH);
+        /* El fondo de selección termina 8 px antes del borde: el botón queda dentro. */
+        if (sidebar->eject_pad_cell_renderer != NULL)
+            g_object_set (sidebar->eject_pad_cell_renderer, "width",
+                          MAX (sidebar->eject_pad_width, FINDER_EJECT_TRAILING_PAD), NULL);
     } else {
         gtk_tree_view_column_set_max_width (sidebar->eject_column, EJECT_COLUMN_MAX_WIDTH);
+        if (sidebar->eject_pad_cell_renderer != NULL)
+            g_object_set (sidebar->eject_pad_cell_renderer, "width", sidebar->eject_pad_width, NULL);
         gtk_style_context_remove_class (sidebar_context, "nemo-finder-sidebar");
         gtk_style_context_remove_class (tree_context, "nemo-finder-sidebar-tree");
         gtk_tree_view_set_show_expanders (sidebar->tree_view, TRUE);
@@ -5070,10 +5080,12 @@ nemo_places_sidebar_init (NemoPlacesSidebar *sidebar)
         gint nat_width;
 
         gtk_widget_get_preferred_width (vscrollbar, NULL, &nat_width);
-        g_object_set (cell, "width", nat_width, NULL);
+        sidebar->eject_pad_width = nat_width;
     } else {
-        g_object_set (cell, "width", 2, NULL);
+        sidebar->eject_pad_width = 2;
     }
+    sidebar->eject_pad_cell_renderer = cell;
+    g_object_set (cell, "width", sidebar->eject_pad_width, NULL);
 
     expander_pad_column = GTK_TREE_VIEW_COLUMN (gtk_tree_view_column_new());
     gtk_tree_view_column_set_sizing (expander_pad_column, GTK_TREE_VIEW_COLUMN_FIXED);

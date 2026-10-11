@@ -14,7 +14,8 @@
 #include <string.h>
 
 #define POLL_ACTIVE_SECONDS 1
-#define POLL_IDLE_SECONDS   3
+#define POLL_IDLE_SECONDS   1
+#define LINGER_SECONDS      2
 
 typedef struct {
 	char     *name;
@@ -36,6 +37,8 @@ struct _NemoICloudProgress {
 	GHashTable *seen;        /* nombre -> tamaño, para lo que ya terminó */
 	gint64      finished;    /* bytes de lo que terminó en esta tanda */
 	double      fraction;
+	gint64      last_total;   /* totalTransfers de rclone en la consulta anterior */
+	gint64      linger_until; /* g_get_monotonic_time: el círculo sigue lleno hasta aquí */
 
 	GtkWidget  *window;
 	GtkWidget  *list;
@@ -170,6 +173,28 @@ find_item (GPtrArray *items, const char *name)
 	return NULL;
 }
 
+static gboolean
+is_visible (NemoICloudProgress *self)
+{
+	return self->items->len > 0 || g_get_monotonic_time () < self->linger_until;
+}
+
+static gint64
+parse_total_transfers (const char *text)
+{
+	JsonParser *parser = json_parser_new ();
+	gint64 total = -1;
+
+	if (json_parser_load_from_data (parser, text, -1, NULL)) {
+		JsonNode *root = json_parser_get_root (parser);
+		if (root != NULL && JSON_NODE_HOLDS_OBJECT (root))
+			total = json_object_get_int_member_with_default (json_node_get_object (root),
+									  "totalTransfers", -1);
+	}
+	g_object_unref (parser);
+	return total;
+}
+
 static void
 apply_state (NemoICloudProgress *self, RcResult *r)
 {
@@ -228,7 +253,7 @@ apply_state (NemoICloudProgress *self, RcResult *r)
 
 	if (items->len == 0) {
 		self->finished = 0;
-		self->fraction = 0;
+		self->fraction = g_get_monotonic_time () < self->linger_until ? 1.0 : 0;
 	} else if (total + self->finished > 0) {
 		self->fraction = (double) (done + self->finished) / (double) (total + self->finished);
 	} else {
@@ -237,6 +262,18 @@ apply_state (NemoICloudProgress *self, RcResult *r)
 
 	g_ptr_array_unref (self->items);
 	self->items = items;
+
+	/* Transferencias que empezaron y terminaron entre dos consultas: se muestran un rato. */
+	{
+		gint64 t = parse_total_transfers (r->stats);
+
+		if (t >= 0 && self->last_total >= 0 && t > self->last_total && self->items->len == 0) {
+			self->linger_until = g_get_monotonic_time () + LINGER_SECONDS * G_USEC_PER_SEC;
+			self->fraction = 1.0;
+		}
+		if (t >= 0)
+			self->last_total = t;
+	}
 }
 
 static gboolean poll_cb (gpointer data);
@@ -246,7 +283,7 @@ poll_done (GObject *source, GAsyncResult *res, gpointer data)
 {
 	NemoICloudProgress *self = NEMO_ICLOUD_PROGRESS (source);
 	RcResult *r = g_task_propagate_pointer (G_TASK (res), NULL);
-	gboolean was_active = self->items->len > 0;
+	gboolean was_visible = is_visible (self);
 
 	self->busy = FALSE;
 	if (r != NULL) {
@@ -257,13 +294,13 @@ poll_done (GObject *source, GAsyncResult *res, gpointer data)
 		self->finished = 0;
 		self->fraction = 0;
 	}
-	if (was_active || self->items->len > 0)
+	if (was_visible || is_visible (self))
 		g_signal_emit (self, signals[CHANGED], 0);
 
 	/* ajusta la cadencia: rápido mientras haya actividad */
 	if (self->timer != 0)
 		g_source_remove (self->timer);
-	self->timer = g_timeout_add_seconds (self->items->len > 0 ? POLL_ACTIVE_SECONDS : POLL_IDLE_SECONDS,
+	self->timer = g_timeout_add_seconds (is_visible (self) ? POLL_ACTIVE_SECONDS : POLL_IDLE_SECONDS,
 					     poll_cb, self);
 }
 
@@ -304,6 +341,7 @@ nemo_icloud_progress_init (NemoICloudProgress *self)
 		self->socket_path = g_strdup (env);
 	else
 		self->socket_path = g_build_filename (g_get_user_runtime_dir (), "rclone-icloud.sock", NULL);
+	self->last_total = -1;
 	self->items = g_ptr_array_new_with_free_func ((GDestroyNotify) item_free);
 	self->seen = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 }
@@ -331,7 +369,7 @@ nemo_icloud_progress_get (void)
 gboolean
 nemo_icloud_progress_is_active (NemoICloudProgress *self)
 {
-	return self->items->len > 0;
+	return is_visible (self);
 }
 
 /* ---- Círculo ---- */
@@ -344,7 +382,7 @@ nemo_icloud_progress_get_pixbuf (NemoICloudProgress *self, int size)
 	GdkPixbuf *pixbuf;
 	double c = size / 2.0, r = size / 2.0 - 1.5;
 
-	if (self->items->len == 0)
+	if (!is_visible (self))
 		return NULL;
 
 	surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, size, size);
