@@ -60,6 +60,7 @@
 #include "nemo-application.h"
 #include "nemo-bookmark-list.h"
 #include "nemo-places-sidebar.h"
+#include "nemo-icloud-progress.h"
 #include "nemo-properties-window.h"
 #include "nemo-window.h"
 #include "nemo-window-slot.h"
@@ -68,6 +69,8 @@
 #include <libnemo-private/nemo-debug.h>
 
 #define EXPANDER_PAD_COLUMN_WIDTH 4
+#define ICLOUD_PIE_SIZE 16
+
 #define EJECT_COLUMN_MIN_WIDTH 22
 #define EJECT_COLUMN_MAX_WIDTH 60
 #define FINDER_EJECT_COLUMN_MAX_WIDTH 26
@@ -187,6 +190,7 @@ enum {
 	PLACES_SIDEBAR_COLUMN_HEADING_TEXT,
     PLACES_SIDEBAR_COLUMN_DF_PERCENT,
     PLACES_SIDEBAR_COLUMN_SHOW_DF,
+    PLACES_SIDEBAR_COLUMN_PROGRESS,
 
 	PLACES_SIDEBAR_COLUMN_COUNT
 };
@@ -220,6 +224,7 @@ static void  open_selected_bookmark                    (NemoPlacesSidebar       
 							NemoWindowOpenFlags flags);
 static void  nemo_places_sidebar_style_set         (GtkWidget                    *widget,
 							GtkStyle                     *previous_style);
+static void icloud_progress_changed_cb (NemoICloudProgress *progress, NemoPlacesSidebar *sidebar);
 static gboolean eject_or_unmount_bookmark              (NemoPlacesSidebar *sidebar,
 							GtkTreePath *path);
 static gboolean eject_or_unmount_selection             (NemoPlacesSidebar *sidebar);
@@ -713,6 +718,12 @@ add_place (NemoPlacesSidebar *sidebar,
 			    -1);
 
     g_clear_object (&gicon);
+
+    if (place_type == PLACES_BUILT_IN && section_type == SECTION_ICLOUD) {
+        GdkPixbuf *pie = nemo_icloud_progress_get_pixbuf (nemo_icloud_progress_get (), ICLOUD_PIE_SIZE);
+        gtk_tree_store_set (sidebar->store, &iter, PLACES_SIDEBAR_COLUMN_PROGRESS, pie, -1);
+        g_clear_object (&pie);
+    }
 
     return cat_iter;
 }
@@ -1841,6 +1852,53 @@ drive_changed_callback (GVolumeMonitor *volume_monitor,
 			NemoPlacesSidebar *sidebar)
 {
 	update_places_on_idle (sidebar);
+}
+
+static gboolean
+icloud_progress_row_cb (GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
+{
+    GdkPixbuf *pie = data;
+    PlaceType type;
+    SectionType section;
+
+    gtk_tree_model_get (model, iter,
+                        PLACES_SIDEBAR_COLUMN_ROW_TYPE, &type,
+                        PLACES_SIDEBAR_COLUMN_SECTION_TYPE, &section,
+                        -1);
+    if (type == PLACES_BUILT_IN && section == SECTION_ICLOUD) {
+        gtk_tree_store_set (GTK_TREE_STORE (model), iter, PLACES_SIDEBAR_COLUMN_PROGRESS, pie, -1);
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static void
+icloud_progress_changed_cb (NemoICloudProgress *progress, NemoPlacesSidebar *sidebar)
+{
+    GdkPixbuf *pie = nemo_icloud_progress_get_pixbuf (progress, ICLOUD_PIE_SIZE);
+
+    gtk_tree_model_foreach (GTK_TREE_MODEL (sidebar->store), icloud_progress_row_cb, pie);
+    g_clear_object (&pie);
+}
+
+static gboolean
+over_progress_button (NemoPlacesSidebar *sidebar, gint x, gint y)
+{
+    GtkTreeViewColumn *column;
+    GtkTreePath *path = NULL;
+    GtkTreeModel *model = gtk_tree_view_get_model (sidebar->tree_view);
+    GtkTreeIter iter;
+    GdkPixbuf *pie = NULL;
+
+    if (!gtk_tree_view_get_path_at_pos (sidebar->tree_view, x, y, &path, &column, NULL, NULL))
+        return FALSE;
+    if (column == sidebar->eject_column && gtk_tree_model_get_iter (model, &iter, path))
+        gtk_tree_model_get (model, &iter, PLACES_SIDEBAR_COLUMN_PROGRESS, &pie, -1);
+    gtk_tree_path_free (path);
+    if (pie == NULL)
+        return FALSE;
+    g_object_unref (pie);
+    return TRUE;
 }
 
 static gboolean
@@ -4134,6 +4192,13 @@ bookmarks_button_release_event_cb (GtkWidget *widget,
 	}
 
 	if (event->button == GDK_BUTTON_PRIMARY &&
+	    over_progress_button (sidebar, (int) event->x, (int) event->y)) {
+		nemo_icloud_progress_show_window (nemo_icloud_progress_get (),
+						  GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (sidebar))));
+		return TRUE;
+	}
+
+	if (event->button == GDK_BUTTON_PRIMARY &&
 	    over_eject_button (sidebar, (int) event->x, (int) event->y, &path)) {
 		eject_or_unmount_bookmark (sidebar, path);
 		gtk_tree_path_free (path);
@@ -4977,6 +5042,16 @@ nemo_places_sidebar_init (NemoPlacesSidebar *sidebar)
                          "stock-size", PLACES_SIDEBAR_COLUMN_EJECT_ICON_SIZE,
                          NULL);
 
+    /* iCloud progress pie, shown in place of the eject button */
+    cell = gtk_cell_renderer_pixbuf_new ();
+    g_object_set (cell, "mode", GTK_CELL_RENDERER_MODE_ACTIVATABLE, "yalign", 0.8, NULL);
+    gtk_tree_view_column_pack_start (sidebar->eject_column, cell, FALSE);
+    gtk_tree_view_column_set_attributes (sidebar->eject_column, cell,
+                                         "pixbuf", PLACES_SIDEBAR_COLUMN_PROGRESS,
+                                         NULL);
+    g_signal_connect_object (nemo_icloud_progress_get (), "changed",
+                             G_CALLBACK (icloud_progress_changed_cb), sidebar, 0);
+
     /* eject icon trailing padding (adjusts to always avoid overlay-scrollbars) */
     gboolean overlay_scrolling;
     GtkSettings *gtksettings = gtk_settings_get_default ();
@@ -5417,7 +5492,8 @@ nemo_shortcuts_model_new (NemoPlacesSidebar *sidebar)
 		G_TYPE_INT,
 		G_TYPE_STRING,
         G_TYPE_INT,
-        G_TYPE_BOOLEAN
+        G_TYPE_BOOLEAN,
+        GDK_TYPE_PIXBUF
 	};
 
 	model = g_object_new (NEMO_TYPE_SHORTCUTS_MODEL, NULL);

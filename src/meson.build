@@ -62,6 +62,7 @@ nemoCommon_sources = [
   'nemo-template-config-widget.c',
   'nemo-finder-path-bar.c',
   'nemo-ds-store-import.c',
+  'nemo-icloud-progress.c',
   'nemo-finder-file-actions.c',
   'nemo-finder-preferences.c',
   'nemo-finder-shortcuts.c',
@@ -119,7 +120,7 @@ fynder_build_number = custom_target('fynder-build-number',
   build_by_default: true,
 )
 
-nemo_deps = [ declare_dependency (sources: fynder_build_number), cinnamon, gail, glib, gtk, math,
+nemo_deps = [ declare_dependency (sources: fynder_build_number), cinnamon, gail, glib, gtk, json, math,
   egg, nemo_extension, nemo_private, xapp ]
 
 if exempi_enabled
