@@ -40,6 +40,7 @@
 #include <glib/gi18n.h>
 #include <glib/gstdio.h>
 #include <gio/gio.h>
+#include <gio/gunixmounts.h>
 #include <unistd.h>
 #include <stdlib.h>
 
@@ -1625,6 +1626,31 @@ get_best_name (GtkIconTheme *icon_theme,
     }
 
     return icon_name;
+}
+
+/* FUSE mounts made by rclone (iCloud Drive, etc.) are cloud folders, not disks:
+ * they have their own sidebar section and must not be listed as devices. */
+gboolean
+nemo_mount_is_cloud_folder (GMount *mount)
+{
+    GFile *root;
+    gchar *path;
+    GUnixMountEntry *entry;
+    gboolean result = FALSE;
+
+    root = g_mount_get_root (mount);
+    path = g_file_get_path (root);
+    g_object_unref (root);
+    if (path == NULL)
+        return FALSE;
+
+    entry = g_unix_mount_at (path, NULL);
+    if (entry != NULL) {
+        result = g_str_has_prefix (g_unix_mount_get_fs_type (entry), "fuse.rclone");
+        g_unix_mount_free (entry);
+    }
+    g_free (path);
+    return result;
 }
 
 gchar *

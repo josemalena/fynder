@@ -26,6 +26,7 @@
 #include "nemo-desktop-link-monitor.h"
 #include "nemo-desktop-metadata.h"
 #include "nemo-desktop-link.h"
+#include "nemo-file-utilities.h"
 #include "nemo-desktop-icon-file.h"
 #include "nemo-directory.h"
 #include "nemo-desktop-directory.h"
@@ -285,7 +286,8 @@ create_mount_link (NemoDesktopLinkMonitor *monitor,
 	if (has_mount (monitor, mount))
 		return;
 
-	if ((!g_mount_is_shadowed (mount)) && mount_kind_visible (mount)) {
+	if ((!g_mount_is_shadowed (mount)) && !nemo_mount_is_cloud_folder (mount) &&
+	    mount_kind_visible (mount)) {
 		link = nemo_desktop_link_new_from_mount (mount);
 		monitor->details->mount_links = g_list_prepend (monitor->details->mount_links, link);
 	}

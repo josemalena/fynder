@@ -111,6 +111,7 @@ void nemo_get_x_content_types_for_mount_async (GMount *mount,
 						   gpointer user_data);
 
 gchar *nemo_get_mount_icon_name (GMount *mount);
+gboolean nemo_mount_is_cloud_folder (GMount *mount);
 gchar *nemo_get_volume_icon_name (GVolume *volume);
 gchar *nemo_get_drive_icon_name (GDrive *drive);
 
