@@ -1653,6 +1653,24 @@ nemo_mount_is_cloud_folder (GMount *mount)
     return result;
 }
 
+/* iCloud Drive has its own sidebar section, so its mount is not listed as a place. */
+gboolean
+nemo_mount_is_icloud (GMount *mount)
+{
+    GFile *root;
+    gchar *path, *icloud;
+    gboolean result;
+
+    icloud = g_settings_get_string (nemo_preferences, NEMO_PREFERENCES_SIDEBAR_ICLOUD_PATH);
+    root = g_mount_get_root (mount);
+    path = g_file_get_path (root);
+    g_object_unref (root);
+    result = icloud[0] != '\0' && path != NULL && g_strcmp0 (icloud, path) == 0;
+    g_free (icloud);
+    g_free (path);
+    return result;
+}
+
 gchar *
 nemo_get_mount_icon_name (GMount *mount)
 {

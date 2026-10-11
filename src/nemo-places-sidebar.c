@@ -1419,7 +1419,7 @@ update_places (NemoPlacesSidebar *sidebar)
 
     for (l = mounts; l != NULL; l = l->next) {
         mount = l->data;
-        if (g_mount_is_shadowed (mount) || nemo_mount_is_cloud_folder (mount)) {
+        if (g_mount_is_shadowed (mount) || nemo_mount_is_icloud (mount)) {
             g_object_unref (mount);
             continue;
         }
