@@ -130,8 +130,15 @@ zip_find (GPtrArray *entries, const char *suffix_path)
 		/* «Paquete.app/<suffix_path>» o «<suffix_path>» a secas */
 		if (g_str_has_suffix (e->name, suffix_path)) {
 			const char *head = e->name + strlen (e->name) - strlen (suffix_path);
+			const char *slash;
 
-			if (head == e->name || head[-1] == '/')
+			/* solo el primer nivel: «Paquete.app/Contents/…», no el de un plugin anidado */
+			if (head == e->name)
+				return e;
+			if (head[-1] != '/')
+				continue;
+			slash = memchr (e->name, '/', head - 1 - e->name);
+			if (slash == NULL)
 				return e;
 		}
 	}
@@ -370,7 +377,7 @@ icns_from_zip (const char *path)
 GFile *
 nemo_app_bundle_icon_file (const char *path, gboolean is_directory, gint64 mtime)
 {
-	char *key = g_strdup_printf ("%s:%" G_GINT64_FORMAT, path, mtime);
+	char *key = g_strdup_printf ("v2:%s:%" G_GINT64_FORMAT, path, mtime);
 	char *sum = g_compute_checksum_for_string (G_CHECKSUM_SHA1, key, -1);
 	char *dir = g_build_filename (g_get_user_cache_dir (), "fynder", "app-icons", NULL);
 	char *name = g_strconcat (sum, ".png", NULL);
