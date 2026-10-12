@@ -36,6 +36,7 @@
 #include "nemo-desktop-icon-grid-view.h"
 #include "nemo-error-reporting.h"
 #include "nemo-finder-file-actions.h"
+#include "nemo-finder-packages.h"
 #include "nemo-list-view.h"
 #include "nemo-mime-actions.h"
 #include "nemo-previewer.h"
@@ -2190,6 +2191,19 @@ local_selection (NemoView *view)
 	}
 	nemo_file_list_free (selection);
 	return g_list_reverse (local);
+}
+
+static void
+action_show_package_contents_callback (GtkAction *action,
+				       gpointer callback_data)
+{
+	NemoView *view = NEMO_VIEW (callback_data);
+	GList *selection = nemo_view_get_selection (view);
+	GtkWindow *window = nemo_view_get_containing_window (view);
+
+	if (selection != NULL && selection->next == NULL && NEMO_IS_WINDOW (window))
+		nemo_finder_show_package_contents (NEMO_FILE (selection->data), NEMO_WINDOW (window));
+	nemo_file_list_free (selection);
 }
 
 static void
@@ -8411,6 +8425,10 @@ static const GtkActionEntry directory_view_entries[] = {
   /* label, accelerator */       N_("_Quick Look"), NULL,
   /* tooltip */                  N_("Preview the selected item"),
 				 G_CALLBACK (action_quick_look_callback) },
+  /* name, stock id */         { "Show Package Contents", NULL,
+  /* label, accelerator */       N_("Show Package Contents"), NULL,
+  /* tooltip */                  N_("Show the files inside this package"),
+				 G_CALLBACK (action_show_package_contents_callback) },
   /* name, stock id */         { "Compress", NULL,
   /* label, accelerator */       N_("Compress"), NULL,
   /* tooltip */                  N_("Create a ZIP archive with the selected items"),
@@ -10113,6 +10131,22 @@ real_update_menus (NemoView *view)
 	action = gtk_action_group_get_action (view->details->dir_action_group, "Quick Look");
 	gtk_action_set_sensitive (action, selection_count > 0);
 	gtk_action_set_visible (action, selection_count > 0);
+
+	/* Show Package Contents: un solo elemento que sea paquete (carpeta o zip) */
+	action = gtk_action_group_get_action (view->details->dir_action_group, "Show Package Contents");
+	{
+		gboolean show_package = FALSE;
+
+		if (selection_count == 1 && !selection_contains_recent &&
+		    g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_TOOLBAR_FINDER_LAYOUT)) {
+			GList *sel = nemo_view_get_selection (view);
+
+			show_package = sel != NULL &&
+				       nemo_finder_package_kind (NEMO_FILE (sel->data)) != NEMO_PACKAGE_NONE;
+			nemo_file_list_free (sel);
+		}
+		gtk_action_set_visible (action, show_package);
+	}
 
 	/* Compress, Burn to Disc y Add to Dock: solo en el layout Finder, con la
 	 * herramienta instalada y la selección en disco local */

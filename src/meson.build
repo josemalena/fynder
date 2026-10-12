@@ -64,6 +64,7 @@ nemoCommon_sources = [
   'nemo-ds-store-import.c',
   'nemo-icloud-progress.c',
   'nemo-finder-file-actions.c',
+  'nemo-finder-packages.c',
   'nemo-finder-preferences.c',
   'nemo-finder-shortcuts.c',
   'nemo-finder-view-options.c',

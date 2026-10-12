@@ -7167,8 +7167,11 @@ nemo_file_get_string_attribute_q (NemoFile *file, GQuark attribute_q)
 	}
 	if (attribute_q == attribute_tags_q || attribute_q == attribute_comment_q) {
 		load_mac_metadata (file);
-		return g_strdup (attribute_q == attribute_tags_q ? file->details->mac_tags_markup
-								 : file->details->mac_comment);
+		const char *value = attribute_q == attribute_tags_q ? file->details->mac_tags_markup
+								    : file->details->mac_comment;
+
+		/* vacío, no «unknown»: la mayoría de los archivos no tienen etiquetas */
+		return g_strdup (value != NULL ? value : "");
 	}
 	if (attribute_q == attribute_octal_permissions_q) {
 		return nemo_file_get_octal_permissions_as_string (file);

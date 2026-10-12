@@ -286,7 +286,7 @@ create_mount_link (NemoDesktopLinkMonitor *monitor,
 	if (has_mount (monitor, mount))
 		return;
 
-	if ((!g_mount_is_shadowed (mount)) && !nemo_mount_is_cloud_folder (mount) &&
+	if ((!g_mount_is_shadowed (mount)) && !nemo_mount_is_cloud_folder (mount) && !nemo_mount_is_archive (mount) &&
 	    mount_kind_visible (mount)) {
 		link = nemo_desktop_link_new_from_mount (mount);
 		monitor->details->mount_links = g_list_prepend (monitor->details->mount_links, link);

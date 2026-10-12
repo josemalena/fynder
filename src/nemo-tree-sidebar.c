@@ -600,7 +600,7 @@ add_root_for_mount (FMTreeView *view,
 	GFile *root;
 	GIcon *icon;
 
-	if (g_mount_is_shadowed (mount) || nemo_mount_is_icloud (mount))
+	if (g_mount_is_shadowed (mount) || nemo_mount_is_icloud (mount) || nemo_mount_is_archive (mount))
 		return;
 
 	icon = g_mount_get_icon (mount);

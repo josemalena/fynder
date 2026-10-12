@@ -25,6 +25,7 @@
 #include <config.h>
 
 #include "nemo-mime-actions.h"
+#include "nemo-finder-packages.h"
 
 #include "nemo-window-slot.h"
 #include "nemo-error-reporting.h"
@@ -2258,6 +2259,12 @@ nemo_mime_activate_files (GtkWindow *parent_window,
 	LaunchLocation *location;
 
 	if (files == NULL) {
+		return;
+	}
+
+	/* Un paquete de Mac que llegó como zip se comporta como un archivo:
+	 * el doble clic no abre el gestor de archivos comprimidos. */
+	if (files->next == NULL && nemo_finder_package_blocks_activation (NEMO_FILE (files->data))) {
 		return;
 	}
 

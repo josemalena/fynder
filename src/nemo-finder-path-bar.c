@@ -6,6 +6,7 @@
 #include <config.h>
 
 #include "nemo-finder-path-bar.h"
+#include <string.h>
 
 #include <glib/gi18n.h>
 #include <libnemo-private/nemo-file-utilities.h>
@@ -269,6 +270,47 @@ clear_segments (NemoFinderPathBar *bar)
 	g_ptr_array_set_size (bar->separators, 0);
 }
 
+/* Dentro de un zip montado (archive://…) la ruta sigue por fuera: …/carpeta/Paquete.app
+ * y luego lo de adentro, en vez de la URI escapada del montaje. */
+static GList *
+replace_archive_root (GList *chain)
+{
+	GFile *root = chain != NULL ? chain->data : NULL;
+	char *uri, *host_start, *slash, *host, *once, *real_uri;
+	GFile *real;
+	GList *real_chain = NULL, *rest;
+
+	if (root == NULL || !g_file_has_uri_scheme (root, "archive"))
+		return chain;
+
+	uri = g_file_get_uri (root);
+	host_start = uri + strlen ("archive://");
+	slash = strchr (host_start, '/');
+	host = slash != NULL ? g_strndup (host_start, slash - host_start) : g_strdup (host_start);
+	once = g_uri_unescape_string (host, NULL);
+	real_uri = once != NULL ? g_uri_unescape_string (once, NULL) : NULL;
+	g_free (uri);
+	g_free (host);
+	g_free (once);
+	if (real_uri == NULL)
+		return chain;
+
+	real = g_file_new_for_uri (real_uri);
+	g_free (real_uri);
+	for (GFile *f = g_object_ref (real); f != NULL; ) {
+		GFile *parent = g_file_get_parent (f);
+
+		real_chain = g_list_prepend (real_chain, f);
+		f = parent;
+	}
+	g_object_unref (real);
+
+	/* chain sin su primer elemento (la raíz del zip, que es el propio archivo) */
+	rest = g_list_delete_link (chain, chain);
+	g_object_unref (root);
+	return g_list_concat (real_chain, rest);
+}
+
 void
 nemo_finder_path_bar_set_location (NemoFinderPathBar *bar,
                                    GFile *location,
@@ -294,6 +336,8 @@ nemo_finder_path_bar_set_location (NemoFinderPathBar *bar,
 		chain = g_list_prepend (chain, file); /* toma la referencia */
 		file = parent;
 	}
+
+	chain = replace_archive_root (chain);
 
 	for (l = chain; l != NULL; l = l->next) {
 		gboolean is_root = (l == chain);

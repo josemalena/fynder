@@ -1653,6 +1653,18 @@ nemo_mount_is_cloud_folder (GMount *mount)
     return result;
 }
 
+/* Los zip que se abren con «Show Package Contents» se montan con archive://:
+ * son una vista temporal, no un lugar que deba listarse. */
+gboolean
+nemo_mount_is_archive (GMount *mount)
+{
+    GFile *root = g_mount_get_root (mount);
+    gboolean result = g_file_has_uri_scheme (root, "archive");
+
+    g_object_unref (root);
+    return result;
+}
+
 /* iCloud Drive has its own sidebar section, so its mount is not listed as a place. */
 gboolean
 nemo_mount_is_icloud (GMount *mount)
