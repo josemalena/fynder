@@ -92,6 +92,10 @@ struct NemoFileDetails
     time_t mac_meta_mtime;
     char *mac_tags_markup;
     char *mac_comment;
+    /* icono del paquete de Mac (nemo-app-icon.c), con caché por mtime */
+    gboolean bundle_icon_checked;
+    time_t bundle_icon_mtime;
+    GIcon *bundle_icon;
 	
 	char *symlink_name;
 	

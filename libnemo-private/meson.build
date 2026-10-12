@@ -29,6 +29,7 @@ nemo_private_sources = [
   'nemo-desktop-utils.c',
   'nemo-ds-store.c',
   'nemo-mac-metadata.c',
+  'nemo-app-icon.c',
   'nemo-directory-async.c',
   'nemo-directory.c',
   'nemo-dnd.c',

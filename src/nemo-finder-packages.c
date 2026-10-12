@@ -6,32 +6,12 @@
 #include <config.h>
 
 #include "nemo-finder-packages.h"
+#include <libnemo-private/nemo-app-icon.h>
 
 #include <gio/gio.h>
 #include <glib/gi18n.h>
 #include <string.h>
 
-static const char *package_extensions[] = {
-	".app", ".bundle", ".framework", ".plugin", ".kext", ".prefpane", ".saver",
-	".qlgenerator", ".mdimporter", ".xpc", ".appex", ".docset", ".wdgt", ".rtfd",
-	".playground", ".xcarchive", ".xcodeproj", ".xcworkspace", ".xcassets",
-	".pages", ".key", ".numbers", ".photoslibrary", ".imovielibrary", ".fcpbundle",
-	".logicx", ".band", ".vmwarevm", ".pvm", ".sparsebundle", ".theme", NULL
-};
-
-static gboolean
-has_package_extension (const char *name)
-{
-	gsize len = strlen (name);
-
-	for (guint i = 0; package_extensions[i] != NULL; i++) {
-		gsize elen = strlen (package_extensions[i]);
-
-		if (len > elen && g_ascii_strcasecmp (name + len - elen, package_extensions[i]) == 0)
-			return TRUE;
-	}
-	return FALSE;
-}
 
 static gboolean
 file_has_zip_magic (NemoFile *file)
@@ -64,7 +44,7 @@ nemo_finder_package_kind (NemoFile *file)
 	if (file == NULL)
 		return NEMO_PACKAGE_NONE;
 	name = nemo_file_get_name (file);
-	package = name != NULL && has_package_extension (name);
+	package = name != NULL && nemo_app_bundle_has_extension (name);
 	g_free (name);
 	if (!package)
 		return NEMO_PACKAGE_NONE;

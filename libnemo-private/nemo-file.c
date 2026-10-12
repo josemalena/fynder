@@ -34,6 +34,7 @@
 #include "nemo-file-attributes.h"
 #include "nemo-file-private.h"
 #include "nemo-mac-metadata.h"
+#include "nemo-app-icon.h"
 #include "nemo-file-operations.h"
 #include "nemo-file-utilities.h"
 #include "nemo-global-preferences.h"
@@ -836,6 +837,7 @@ finalize (GObject *object)
 	g_free (file->details->selinux_context);
 	g_free (file->details->mac_tags_markup);
 	g_free (file->details->mac_comment);
+	g_clear_object (&file->details->bundle_icon);
 	g_free (file->details->description);
 	g_free (file->details->activation_uri);
 	g_clear_object (&file->details->custom_icon);
@@ -4571,6 +4573,37 @@ get_custom_icon_metadata_name (NemoFile *file)
 	return icon_name;
 }
 
+/* El icono que trae un paquete de Mac por dentro (carpeta o zip): se calcula una vez
+ * por versión del archivo. */
+static GIcon *
+get_bundle_icon (NemoFile *file)
+{
+	if (!file->details->bundle_icon_checked || file->details->bundle_icon_mtime != file->details->mtime) {
+		char *name = nemo_file_get_name (file);
+
+		g_clear_object (&file->details->bundle_icon);
+		file->details->bundle_icon_checked = TRUE;
+		file->details->bundle_icon_mtime = file->details->mtime;
+
+		if (name != NULL && nemo_app_bundle_has_extension (name) && nemo_file_is_local (file)) {
+			char *path = nemo_file_get_path (file);
+
+			if (path != NULL) {
+				GFile *png = nemo_app_bundle_icon_file (path, nemo_file_is_directory (file),
+									(gint64) file->details->mtime);
+
+				if (png != NULL) {
+					file->details->bundle_icon = g_file_icon_new (png);
+					g_object_unref (png);
+				}
+				g_free (path);
+			}
+		}
+		g_free (name);
+	}
+	return file->details->bundle_icon != NULL ? g_object_ref (file->details->bundle_icon) : NULL;
+}
+
 static GIcon *
 get_custom_icon (NemoFile *file)
 {
@@ -4608,6 +4641,10 @@ get_custom_icon (NemoFile *file)
 	if (icon == NULL && file->details->got_link_info && file->details->custom_icon != NULL) {
 		icon = g_object_ref (file->details->custom_icon);
  	}
+
+	if (icon == NULL) {
+		icon = get_bundle_icon (file);
+	}
 
 	return icon;
 }
