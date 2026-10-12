@@ -17,8 +17,11 @@ G_BEGIN_DECLS
 G_DECLARE_FINAL_TYPE (NemoFinderPathBar, nemo_finder_path_bar, NEMO, FINDER_PATH_BAR, GtkContainer)
 
 GtkWidget *nemo_finder_path_bar_new          (void);
+/* «selected» (puede ser NULL) es el elemento seleccionado dentro de «location»:
+ * se muestra como último segmento, como en el Finder. */
 void       nemo_finder_path_bar_set_location (NemoFinderPathBar *bar,
-                                              GFile             *location);
+                                              GFile             *location,
+                                              GFile             *selected);
 
 /* Señal «location-clicked» (GFile *): se hizo clic en un segmento. */
 

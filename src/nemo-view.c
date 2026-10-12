@@ -3966,6 +3966,12 @@ display_selection_info_idle_callback (gpointer data)
 
 	view->details->display_selection_idle_id = 0;
 	nemo_view_display_selection_info (view);
+	{
+		GtkWindow *containing = nemo_view_get_containing_window (view);
+
+		if (NEMO_IS_WINDOW (containing))
+			nemo_window_update_finder_path_bar (NEMO_WINDOW (containing));
+	}
 	if (view->details->send_selection_change_to_shell) {
 		nemo_view_send_selection_change (view);
 	}

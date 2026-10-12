@@ -271,7 +271,8 @@ clear_segments (NemoFinderPathBar *bar)
 
 void
 nemo_finder_path_bar_set_location (NemoFinderPathBar *bar,
-                                   GFile *location)
+                                   GFile *location,
+                                   GFile *selected)
 {
 	GList *chain = NULL, *l;
 	GFile *file;
@@ -285,7 +286,8 @@ nemo_finder_path_bar_set_location (NemoFinderPathBar *bar,
 		return;
 	}
 
-	file = g_object_ref (location);
+	/* Si hay algo seleccionado dentro de la carpeta, la ruta termina en él. */
+	file = g_object_ref (selected != NULL && g_file_has_parent (selected, location) ? selected : location);
 	while (file != NULL) {
 		GFile *parent = g_file_get_parent (file);
 

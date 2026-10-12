@@ -610,7 +610,18 @@ finder_path_bar_clicked_cb (NemoFinderPathBar *bar,
                             GFile *location,
                             NemoWindow *window)
 {
-    nemo_window_go_to (window, location);
+    GFileInfo *info;
+    gboolean is_directory = TRUE;
+
+    /* El elemento seleccionado al final de la ruta: una carpeta se abre, un archivo no. */
+    info = g_file_query_info (location, G_FILE_ATTRIBUTE_STANDARD_TYPE,
+                              G_FILE_QUERY_INFO_NONE, NULL, NULL);
+    if (info != NULL) {
+        is_directory = g_file_info_get_file_type (info) == G_FILE_TYPE_DIRECTORY;
+        g_object_unref (info);
+    }
+    if (is_directory)
+        nemo_window_go_to (window, location);
 }
 
 static void
@@ -638,9 +649,21 @@ nemo_window_update_finder_path_bar (NemoWindow *window)
     if (window->details->finder_path_bar == NULL)
         return;
 
+    GFile *selected = NULL;
+    NemoView *view;
+
     slot = nemo_window_get_active_slot (window);
+    view = slot != NULL ? nemo_window_slot_get_current_view (slot) : NULL;
+    if (view != NULL) {
+        GList *selection = nemo_view_get_selection (view);
+
+        if (selection != NULL && selection->next == NULL)
+            selected = nemo_file_get_location (selection->data);
+        nemo_file_list_free (selection);
+    }
     nemo_finder_path_bar_set_location (NEMO_FINDER_PATH_BAR (window->details->finder_path_bar),
-                                       slot != NULL ? slot->location : NULL);
+                                       slot != NULL ? slot->location : NULL, selected);
+    g_clear_object (&selected);
 }
 
 /* Como el Finder, el lateral desaparece cuando la ventana se vuelve muy
