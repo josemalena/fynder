@@ -99,6 +99,22 @@ get_builtin_columns (void)
 
 	columns = g_list_append (columns,
 				 g_object_new (NEMO_TYPE_COLUMN,
+					       "name", "tags",
+					       "attribute", "tags",
+					       "label", _("Tags"),
+					       "description", _("The Finder tags set on a Mac."),
+					       NULL));
+
+	columns = g_list_append (columns,
+				 g_object_new (NEMO_TYPE_COLUMN,
+					       "name", "comment",
+					       "attribute", "comment",
+					       "label", _("Comments"),
+					       "description", _("The Finder comment set on a Mac."),
+					       NULL));
+
+	columns = g_list_append (columns,
+				 g_object_new (NEMO_TYPE_COLUMN,
 					       "name", "date_added",
 					       "attribute", "date_added",
 					       "label", _("Date Added"),

@@ -2913,7 +2913,7 @@ create_and_set_up_tree_view (NemoListView *view)
             gtk_tree_view_column_set_title (column, label);
             gtk_tree_view_column_pack_start (column, cell, TRUE);
             gtk_tree_view_column_set_attributes (column, cell,
-                                                 "text", column_num,
+                                                 g_strcmp0 (name, "tags") == 0 ? "markup" : "text", column_num,
                                                  "weight", NEMO_LIST_MODEL_TEXT_WEIGHT_COLUMN,
                                                  NULL);
             gtk_tree_view_column_set_cell_data_func (column, cell,

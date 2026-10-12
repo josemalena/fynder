@@ -87,6 +87,11 @@ struct NemoFileDetails
 	time_t ctime; /* 0 is unknown */
     time_t btime; /* 0 is unknown */
     time_t added_time; /* fecha en que se añadió a la carpeta; 0 es desconocida */
+    /* etiquetas y comentario de Finder (nemo-mac-metadata.c), con caché por mtime */
+    gboolean mac_meta_loaded;
+    time_t mac_meta_mtime;
+    char *mac_tags_markup;
+    char *mac_comment;
 	
 	char *symlink_name;
 	

@@ -33,6 +33,7 @@
 #include "nemo-desktop-icon-file.h"
 #include "nemo-file-attributes.h"
 #include "nemo-file-private.h"
+#include "nemo-mac-metadata.h"
 #include "nemo-file-operations.h"
 #include "nemo-file-utilities.h"
 #include "nemo-global-preferences.h"
@@ -142,6 +143,8 @@ static GQuark attribute_name_q,
     attribute_date_created_full_q,
     attribute_date_created_with_time_q,
     attribute_date_added_q,
+    attribute_tags_q,
+    attribute_comment_q,
     attribute_date_added_full_q,
 	attribute_mime_type_q,
 	attribute_size_detail_q,
@@ -831,6 +834,8 @@ finalize (GObject *object)
 	g_clear_pointer (&file->details->owner_real, g_ref_string_release);
 	g_clear_pointer (&file->details->group, g_ref_string_release);
 	g_free (file->details->selinux_context);
+	g_free (file->details->mac_tags_markup);
+	g_free (file->details->mac_comment);
 	g_free (file->details->description);
 	g_free (file->details->activation_uri);
 	g_clear_object (&file->details->custom_icon);
@@ -6995,6 +7000,36 @@ nemo_file_get_deep_directory_count_as_string (NemoFile *file)
  * if the value is unknown or @attribute_name is not supported.
  *
  **/
+/* Etiquetas y comentario que dejó macOS; se leen una vez por versión del archivo. */
+static void
+load_mac_metadata (NemoFile *file)
+{
+	char *path;
+	GList *tags;
+
+	if (file->details->mac_meta_loaded && file->details->mac_meta_mtime == file->details->mtime)
+		return;
+
+	g_clear_pointer (&file->details->mac_tags_markup, g_free);
+	g_clear_pointer (&file->details->mac_comment, g_free);
+	file->details->mac_meta_loaded = TRUE;
+	file->details->mac_meta_mtime = file->details->mtime;
+
+	if (!nemo_file_is_local (file))
+		return;
+	path = nemo_file_get_path (file);
+	if (path == NULL)
+		return;
+
+	tags = nemo_mac_metadata_get_tags (path);
+	if (tags != NULL) {
+		file->details->mac_tags_markup = nemo_mac_tags_to_markup (tags);
+		nemo_mac_tags_free (tags);
+	}
+	file->details->mac_comment = nemo_mac_metadata_get_comment (path);
+	g_free (path);
+}
+
 char *
 nemo_file_get_string_attribute_q (NemoFile *file, GQuark attribute_q)
 {
@@ -7129,6 +7164,11 @@ nemo_file_get_string_attribute_q (NemoFile *file, GQuark attribute_q)
 	}
 	if (attribute_q == attribute_selinux_context_q) {
 		return nemo_file_get_selinux_context (file);
+	}
+	if (attribute_q == attribute_tags_q || attribute_q == attribute_comment_q) {
+		load_mac_metadata (file);
+		return g_strdup (attribute_q == attribute_tags_q ? file->details->mac_tags_markup
+								 : file->details->mac_comment);
 	}
 	if (attribute_q == attribute_octal_permissions_q) {
 		return nemo_file_get_octal_permissions_as_string (file);
@@ -9260,6 +9300,8 @@ nemo_file_class_init (NemoFileClass *class)
     attribute_date_created_q = g_quark_from_static_string ("date_created");
     attribute_date_created_full_q = g_quark_from_static_string ("date_created_full");
     attribute_date_created_with_time_q = g_quark_from_static_string ("date_created_with_time");
+    attribute_tags_q = g_quark_from_static_string ("tags");
+    attribute_comment_q = g_quark_from_static_string ("comment");
     attribute_date_added_q = g_quark_from_static_string ("date_added");
     attribute_date_added_full_q = g_quark_from_static_string ("date_added_full");
 	attribute_mime_type_q = g_quark_from_static_string ("mime_type");
